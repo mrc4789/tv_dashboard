@@ -1,0 +1,147 @@
+{
+  "info": {
+    "name": "TvDashboard Phase 1 — 4 departments",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Local development only. Request 04 requires the current version from request 03."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://PC_LAN_IP:8765"
+    },
+    {
+      "key": "tvKey",
+      "value": "PASTE_FROM_credentials.json"
+    },
+    {
+      "key": "qaKey",
+      "value": "PASTE_SCOPED_KEY"
+    },
+    {
+      "key": "adminToken",
+      "value": "PASTE_FROM_credentials.json"
+    },
+    {
+      "key": "department",
+      "value": "qa-qc"
+    },
+    {
+      "key": "deviceId",
+      "value": "550e8400-e29b-41d4-a716-446655440000"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/health"
+      }
+    },
+    {
+      "name": "02 Departments 17 units",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{tvKey}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/departments"
+      }
+    },
+    {
+      "name": "03 Get QA settings",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{tvKey}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/settings?department={{department}}&deviceId={{deviceId}}&name=TV-Sanh"
+      }
+    },
+    {
+      "name": "04 Update URL with current version",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/departments/{{department}}/settings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"dashboardUrl\": \"https://example.com\",\n  \"expectedVersion\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "05 Devices",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/devices"
+      }
+    },
+    {
+      "name": "06 Audit",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/audit"
+      }
+    },
+    {
+      "name": "07 Wrong key 401",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "wrong-demo"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/departments"
+      }
+    },
+    {
+      "name": "08 QA key wrong department 403",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{qaKey}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/settings?department=project-teams&deviceId={{deviceId}}&name=TV-Sanh"
+      }
+    }
+  ]
+}

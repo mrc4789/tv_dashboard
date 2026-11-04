@@ -1,0 +1,11 @@
+FROM python:3.12-slim
+WORKDIR /app
+COPY backend/run_render.py backend/run_render.py
+COPY backend/server backend/server
+COPY backend/admin backend/admin
+COPY backend/dashboard backend/dashboard
+COPY backend/data/departments.seed.json backend/data/departments.seed.json
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PORT=10000
+EXPOSE 10000
+USER 10001
+CMD ["python", "backend/run_render.py"]

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+        Mặc định (bản release): chỉ cho phép HTTPS.
+        Nếu dashboard chạy HTTP trong mạng LAN, đổi thành "true" rồi build lại.
+        Bản debug dùng file riêng ở app/src/debug/res/xml/ (đã cho phép HTTP).
+    -->
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

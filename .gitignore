@@ -1,0 +1,37 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/app/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+*.jks
+*.keystore
+
+# Local secrets and runtime state
+backend/data/credentials.json
+backend/data/*.sqlite3*
+backend/data/*.pem
+__pycache__/
+*.pyc
+
+# Admin login bootstrap
+/backend/data/admin-bootstrap.json
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Private certificates and keys
+*.key
+*.p12
+*.pfx
+
+# Generated packages and logs
+*.apk
+*.aab
+*.log

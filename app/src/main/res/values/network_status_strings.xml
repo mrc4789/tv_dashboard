@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="network_lost_title">Mất kết nối mạng</string>
+    <string name="network_lost_detail">Kiểm tra Wi-Fi hoặc cáp mạng. App sẽ tự kết nối lại khi mạng phục hồi.</string>
+    <string name="network_lost_banner">Mất mạng — đang chờ kết nối lại</string>
+    <string name="network_reconnecting">Đang kết nối lại dashboard…</string>
+    <string name="dashboard_unreachable">Không kết nối được dashboard</string>
+    <string name="dashboard_no_response">Dashboard chưa phản hồi</string>
+</resources>

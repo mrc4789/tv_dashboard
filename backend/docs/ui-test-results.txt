@@ -1,0 +1,1 @@
+Frontend logic: login, four departments, text-only rendering, save, conflict draft retention and logout passed. Not a browser/layout test.

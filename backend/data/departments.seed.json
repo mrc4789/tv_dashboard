@@ -1,0 +1,32 @@
+{
+  "departments": [
+    {
+      "id": "qa-qc",
+      "name": "QA / QC",
+      "description": "Kiểm thử thủ công, tự động và chất lượng bàn giao.",
+      "parentId": null,
+      "kind": "team"
+    },
+    {
+      "id": "dev",
+      "name": "Development",
+      "description": "Phát triển phần mềm: frontend, backend, full-stack và mobile.",
+      "parentId": null,
+      "kind": "team"
+    },
+    {
+      "id": "project-teams",
+      "name": "Project Teams / ODC",
+      "description": "Quản lý và thực hiện dự án theo Agile/Scrum; các đội Dedicated Team.",
+      "parentId": null,
+      "kind": "team"
+    },
+    {
+      "id": "techgovernance",
+      "name": "Architecture & Technical Governance",
+      "description": "Review giải pháp, kiến trúc hệ thống và kiểm soát rủi ro kỹ thuật.",
+      "parentId": null,
+      "kind": "team"
+    }
+  ]
+}
