@@ -1,0 +1,1222 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "TvDashboard Config Service — Phase 2",
+    "version": "2.0.0",
+    "description": "API cấu hình TV và trang admin cục bộ. Admin UI dùng session cookie + CSRF, chưa tích hợp SSO công ty. HTTP development; production HTTPS."
+  },
+  "servers": [
+    {
+      "url": "http://{pcLanIp}:{port}",
+      "description": "Development LAN; thay bằng IP in từ Start-Service.cmd. Production dùng URL HTTPS.",
+      "variables": {
+        "pcLanIp": {
+          "default": "192.168.1.100",
+          "description": "Ví dụ; thay bằng IP thật của máy chạy API."
+        },
+        "port": {
+          "default": "8765"
+        }
+      }
+    }
+  ],
+  "paths": {
+    "/api/v1/departments": {
+      "get": {
+        "operationId": "listDepartments",
+        "security": [
+          {
+            "tvApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "departments"
+                  ],
+                  "properties": {
+                    "departments": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Department"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/settings": {
+      "get": {
+        "operationId": "getSettings",
+        "security": [
+          {
+            "tvApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Settings"
+                }
+              }
+            }
+          },
+          "/api/v1/settings/events": {
+            "get": {
+              "operationId": "watchSettingsEvents",
+              "description": "SSE chỉ gửi tín hiệu invalidation theo phòng ban; TV phải lấy cấu hình có xác thực lại qua /api/v1/settings. Không gửi URL, PIN hoặc verifier.",
+              "security": [{"tvApiKey": []}],
+              "parameters": [{"name": "department", "in": "query", "required": true, "schema": {"type": "string", "pattern": "^[a-z0-9-]{1,32}$"}}],
+              "responses": {"200": {"description": "text/event-stream; ready và settings-changed chỉ chứa department."}, "403": {"description": "Key không có quyền với phòng ban."}}
+            }
+          },
+          "400": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "department",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,32}$"
+            }
+          },
+          {
+            "name": "deviceId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID v4"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "appVersion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 32
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/devices/{deviceId}/diagnostics": {
+      "get": {
+        "operationId": "getDeviceDiagnostics",
+        "security": [{"adminBearer": []}, {"adminSession": []}],
+        "parameters": [{"$ref": "#/components/parameters/deviceId"}],
+        "responses": {
+          "200": {"description": "Chính sách server, xác nhận TV và log; chỉ admin.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DiagnosticsState"}}}},
+          "401": {"description": "Cần đăng nhập admin"},
+          "403": {"description": "Không có quyền"}
+        }
+      },
+      "put": {
+        "operationId": "setDeviceDiagnostics",
+        "security": [{"adminBearer": []}, {"adminSession": []}],
+        "parameters": [{"$ref": "#/components/parameters/deviceId"}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "required": ["enabled"], "properties": {"enabled": {"type": "boolean"}}}}}},
+        "responses": {"200": {"description": "Đã cập nhật chính sách server; TV cần xác nhận qua API."}, "401": {"description": "Cần đăng nhập admin"}}
+      },
+      "delete": {
+        "operationId": "deleteDeviceDiagnostics",
+        "security": [{"adminBearer": []}, {"adminSession": []}],
+        "parameters": [{"$ref": "#/components/parameters/deviceId"}],
+        "responses": {"200": {"description": "Đã xóa log của thiết bị."}, "401": {"description": "Cần đăng nhập admin"}}
+      },
+      "post": {
+        "operationId": "uploadDeviceDiagnostics",
+        "security": [{"tvApiKey": []}],
+        "parameters": [{"$ref": "#/components/parameters/deviceId"}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "required": ["events"], "properties": {"events": {"type": "array", "minItems": 1, "maxItems": 20, "items": {"$ref": "#/components/schemas/DiagnosticEvent"}}}}}}},
+        "responses": {"200": {"description": "Đã nhận sự kiện; event ID được khử trùng lặp."}, "403": {"description": "Key sai thiết bị/phòng ban hoặc chính sách tắt."}}
+      }
+    },
+    "/api/v1/devices/{deviceId}/diagnostics/ack": {
+      "post": {
+        "operationId": "ackDeviceDiagnosticsPolicy",
+        "security": [{"tvApiKey": []}],
+        "parameters": [{"$ref": "#/components/parameters/deviceId"}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "required": ["enabled", "version"], "properties": {"enabled": {"type": "boolean"}, "version": {"type": "integer", "minimum": 0}}}}}},
+        "responses": {"200": {"description": "TV xác nhận đã nhận đúng phiên bản chính sách."}, "409": {"description": "Chính sách đã đổi."}}
+      }
+    },
+    "/api/v1/devices/{deviceId}/phone-pin/ack": {
+      "post": {
+        "operationId": "ackDevicePhonePinPolicy",
+        "security": [{"tvApiKey": []}],
+        "parameters": [{"$ref": "#/components/parameters/deviceId"}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "required": ["version"], "properties": {"version": {"type": "integer", "minimum": 0}}}}}},
+        "responses": {"200": {"description": "TV xác nhận đã nhận phiên bản PIN."}, "409": {"description": "Chính sách PIN đã đổi."}}
+      }
+    },
+    "/admin/api/devices/{deviceId}/phone-pin": {
+      "get": {
+        "operationId": "getDevicePhonePinMode",
+        "security": [{"adminSession": []}],
+        "parameters": [{"$ref": "#/components/parameters/deviceId"}],
+        "responses": {"200": {"description": "Chế độ và trạng thái xác nhận; không trả PIN hoặc verifier.", "content": {"application/json": {"schema": {"type": "object", "required": ["mode", "version", "tvApplied"], "properties": {"mode": {"type": "string", "enum": ["random", "custom"]}, "version": {"type": "integer", "minimum": 0}, "tvApplied": {"type": "boolean"}, "appliedAt": {"type": "string", "format": "date-time", "nullable": true}}}}}}}
+      },
+      "put": {
+        "operationId": "setDevicePhonePinMode",
+        "security": [{"adminSession": []}],
+        "parameters": [{"$ref": "#/components/parameters/deviceId"}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"oneOf": [{"type": "object", "required": ["mode"], "properties": {"mode": {"type": "string", "enum": ["random"]}}}, {"type": "object", "required": ["mode", "pin"], "properties": {"mode": {"type": "string", "enum": ["custom"]}, "pin": {"type": "string", "pattern": "^[0-9]{6,8}$"}}}]}}}},
+        "responses": {"200": {"description": "Lưu chính sách server; TV cần nhận và xác nhận phiên bản mới."}, "400": {"description": "PIN hoặc mode không hợp lệ."}}
+      }
+    },
+    "/api/v1/departments/{id}/settings": {
+      "put": {
+        "operationId": "updateSettings",
+        "security": [
+          {
+            "adminBearer": []
+          },
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "department",
+                    "dashboardUrl",
+                    "version",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "department": {
+                      "$ref": "#/components/schemas/Department"
+                    },
+                    "dashboardUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,32}$"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Bắt buộc khi dùng session cookie; không cần khi dùng Bearer token."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "dashboardUrl",
+                  "expectedVersion"
+                ],
+                "properties": {
+                  "dashboardUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "maxLength": 2048
+                  },
+                  "expectedVersion": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Cập nhật với expectedVersion. Bearer admin token hoặc session + Origin/CSRF. Cookie sửa ghi username vào audit."
+      }
+    },
+    "/api/v1/devices": {
+      "get": {
+        "operationId": "listDevices",
+        "security": [
+          {
+            "adminBearer": []
+          },
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items",
+                    "page",
+                    "pageSize",
+                    "total",
+                    "serverTime"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Device"
+                      }
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "pageSize": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "serverTime": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Xem mã lỗi trong hợp đồng API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "department",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ]
+      }
+    },
+    "/admin/api/session": {
+      "get": {
+        "operationId": "adminSession",
+        "description": "Lấy trạng thái phiên hoặc login CSRF.",
+        "responses": {
+          "200": {
+            "description": "Thành công"
+          },
+          "400": {
+            "description": "Tham số sai"
+          },
+          "401": {
+            "description": "Chưa đăng nhập hoặc thông tin đăng nhập sai"
+          },
+          "403": {
+            "description": "Origin/CSRF không hợp lệ"
+          },
+          "429": {
+            "description": "Quá nhiều lần thử"
+          }
+        }
+      }
+    },
+    "/admin/api/login": {
+      "post": {
+        "operationId": "adminLogin",
+        "description": "Đăng nhập bằng admin cục bộ; 5 lần/IP/phút.",
+        "responses": {
+          "200": {
+            "description": "Thành công"
+          },
+          "400": {
+            "description": "Tham số sai"
+          },
+          "401": {
+            "description": "Chưa đăng nhập hoặc thông tin đăng nhập sai"
+          },
+          "403": {
+            "description": "Origin/CSRF không hợp lệ"
+          },
+          "429": {
+            "description": "Quá nhiều lần thử"
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token nhận từ /admin/api/session; login dùng token anonymous và cookie tv_admin_login. Các mutation khác dùng token phiên."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username",
+                  "password"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/api/logout": {
+      "post": {
+        "operationId": "adminLogout",
+        "description": "Thu hồi phiên hiện tại.",
+        "responses": {
+          "200": {
+            "description": "Thành công"
+          },
+          "400": {
+            "description": "Tham số sai"
+          },
+          "401": {
+            "description": "Chưa đăng nhập hoặc thông tin đăng nhập sai"
+          },
+          "403": {
+            "description": "Origin/CSRF không hợp lệ"
+          },
+          "429": {
+            "description": "Quá nhiều lần thử"
+          }
+        },
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token nhận từ /admin/api/session; login dùng token anonymous và cookie tv_admin_login. Các mutation khác dùng token phiên."
+          }
+        ]
+      }
+    },
+    "/admin/api/password": {
+      "post": {
+        "operationId": "adminPassword",
+        "description": "Đổi mật khẩu và thu hồi mọi phiên tài khoản.",
+        "responses": {
+          "200": {
+            "description": "Thành công"
+          },
+          "400": {
+            "description": "Tham số sai"
+          },
+          "401": {
+            "description": "Chưa đăng nhập hoặc thông tin đăng nhập sai"
+          },
+          "403": {
+            "description": "Origin/CSRF không hợp lệ"
+          },
+          "429": {
+            "description": "Quá nhiều lần thử"
+          }
+        },
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token nhận từ /admin/api/session; login dùng token anonymous và cookie tv_admin_login. Các mutation khác dùng token phiên."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "currentPassword",
+                  "newPassword"
+                ],
+                "properties": {
+                  "currentPassword": {
+                    "type": "string",
+                    "format": "password"
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "format": "password",
+                    "minLength": 12,
+                    "maxLength": 256
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/api/departments": {
+      "get": {
+        "operationId": "adminDepartments",
+        "description": "Danh sách phòng ban với URL/version/updatedBy, không ghi heartbeat.",
+        "responses": {
+          "200": {
+            "description": "Thành công"
+          },
+          "400": {
+            "description": "Tham số sai"
+          },
+          "401": {
+            "description": "Chưa đăng nhập hoặc thông tin đăng nhập sai"
+          },
+          "403": {
+            "description": "Origin/CSRF không hợp lệ"
+          },
+          "429": {
+            "description": "Quá nhiều lần thử"
+          }
+        },
+        "security": [
+          {
+            "adminSession": []
+          }
+        ]
+      }
+    },
+    "/admin/api/validate-url": {
+      "post": {
+        "operationId": "adminValidateUrl",
+        "description": "Chỉ kiểm tra định dạng và quy tắc HTTP/HTTPS, không kiểm tra mạng.",
+        "responses": {
+          "200": {
+            "description": "Thành công"
+          },
+          "400": {
+            "description": "Tham số sai"
+          },
+          "401": {
+            "description": "Chưa đăng nhập hoặc thông tin đăng nhập sai"
+          },
+          "403": {
+            "description": "Origin/CSRF không hợp lệ"
+          },
+          "429": {
+            "description": "Quá nhiều lần thử"
+          }
+        },
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token nhận từ /admin/api/session; login dùng token anonymous và cookie tv_admin_login. Các mutation khác dùng token phiên."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "dashboardUrl"
+                ],
+                "properties": {
+                  "dashboardUrl": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/api/audit": {
+      "get": {
+        "operationId": "adminAudit",
+        "description": "Lịch sử URL/version/người sửa, lọc và phân trang.",
+        "responses": {
+          "200": {
+            "description": "Thành công"
+          },
+          "400": {
+            "description": "Tham số sai"
+          },
+          "401": {
+            "description": "Chưa đăng nhập hoặc thông tin đăng nhập sai"
+          },
+          "403": {
+            "description": "Origin/CSRF không hợp lệ"
+          },
+          "429": {
+            "description": "Quá nhiều lần thử"
+          }
+        },
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "department",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "deviceId": {
+        "name": "deviceId",
+        "in": "path",
+        "required": true,
+        "schema": {"type": "string", "format": "uuid", "description": "UUID v4 của thiết bị đã đăng ký"}
+      }
+    },
+    "securitySchemes": {
+      "tvApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key"
+      },
+      "adminBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "adminSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "tv_admin_session",
+        "description": "Session 8 giờ từ /admin/api/login. Mutation cần Origin cùng site và header X-CSRF-Token."
+      }
+    },
+    "schemas": {
+      "Department": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,32}$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "block",
+              "team"
+            ]
+          }
+        }
+      },
+      "Settings": {
+        "type": "object",
+        "required": [
+          "department",
+          "dashboardUrl",
+          "version",
+          "pollSeconds",
+          "serverTime",
+          "diagnosticsEnabled",
+          "diagnosticsPolicyVersion",
+          "phonePinPolicy",
+          "phonePinPolicyVersion"
+        ],
+        "properties": {
+          "department": {
+            "$ref": "#/components/schemas/Department"
+          },
+          "dashboardUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "pollSeconds": {
+            "type": "integer",
+            "enum": [
+              300
+            ]
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "diagnosticsEnabled": {
+            "type": "boolean",
+            "description": "Chính sách server; TV xác nhận riêng qua diagnostics/ack."
+          },
+          "diagnosticsPolicyVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "phonePinPolicy": {
+            "$ref": "#/components/schemas/PhonePinPolicy"
+          },
+          "phonePinPolicyVersion": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "PhonePinPolicy": {
+        "oneOf": [
+          {"type": "object", "required": ["mode"], "properties": {"mode": {"type": "string", "enum": ["random"]}}},
+          {"type": "object", "required": ["mode", "salt", "hash", "iterations"], "properties": {"mode": {"type": "string", "enum": ["custom"]}, "salt": {"type": "string", "pattern": "^[0-9a-f]{32}$"}, "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "iterations": {"type": "integer", "enum": [100000]}}}
+        ],
+        "description": "Verifier salted; không chứa PIN rõ."
+      },
+      "DiagnosticEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "code", "occurredAt"],
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "kind": {"type": "string", "enum": ["NETWORK", "HTTP_SERVER", "SSL", "TIMEOUT", "RENDERER", "LOADED"]},
+          "code": {"type": "string", "pattern": "^[0-9]{0,3}$"},
+          "occurredAt": {"type": "string", "format": "date-time"}
+        }
+      },
+      "DiagnosticsState": {
+        "type": "object",
+        "required": ["enabled", "policyVersion", "tvAcknowledged", "items"],
+        "properties": {
+          "enabled": {"type": "boolean"},
+          "policyVersion": {"type": "integer", "minimum": 0},
+          "tvAcknowledged": {"type": "boolean"},
+          "acknowledgedAt": {"type": "string", "format": "date-time", "nullable": true},
+          "items": {"type": "array", "items": {"type": "object", "properties": {"kind": {"type": "string"}, "code": {"type": "string"}, "occurred_at": {"type": "string", "format": "date-time"}, "received_at": {"type": "string", "format": "date-time"}}}}
+        }
+      },
+      "Device": {
+        "type": "object",
+        "required": [
+          "deviceId",
+          "name",
+          "department",
+          "lastSeenAt",
+          "status"
+        ],
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "department": {
+            "$ref": "#/components/schemas/Department"
+          },
+          "appVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "online",
+              "offline"
+            ]
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "requestId"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "requestId": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

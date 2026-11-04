@@ -1,0 +1,18 @@
+{
+  "pcLanIp": "",
+  "apiPort": 8765,
+  "phonePort": 8096,
+  "adbPort": 8095,
+  "tvServerPort": 8080,
+  "deviceSerial": "",
+  "adbPath": "",
+  "developmentHttp": true,
+  "httpsCert": "",
+  "httpsKey": "",
+  "pollSeconds": 300,
+  "offlineSeconds": 720,
+  "keyRequestsPerMinute": 120,
+  "deviceRequestsPerMinute": 10,
+  "pairingDepartment": "qa-qc",
+  "lanPairingSeconds": 600
+}

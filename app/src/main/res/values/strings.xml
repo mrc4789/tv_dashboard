@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TV Dashboard</string>
+
+    <!-- Màn hình chính / trạng thái -->
+    <string name="loading_dashboard">Đang tải dashboard...</string>
+    <string name="waiting_network">Đang chờ kết nối mạng...</string>
+    <string name="not_configured_title">Chưa cấu hình URL cục bộ / dự phòng</string>
+    <string name="not_configured_detail">Bấm Menu (hoặc giữ OK 3 giây) để mở cài đặt</string>
+    <string name="press_back_again">Bấm Back lần nữa để thoát</string>
+    <string name="overlay_hint">Bấm Menu hoặc giữ OK 3 giây để mở cài đặt</string>
+    <string name="reloading_now">Đang tải lại dashboard...</string>
+    <string name="url_from_intent_invalid">URL truyền qua adb không hợp lệ</string>
+
+    <!-- Lỗi tải trang -->
+    <string name="load_error_title">Không tải được dashboard</string>
+    <string name="error_network">Lỗi mạng: %1$s</string>
+    <string name="error_http">Máy chủ báo lỗi (HTTP %1$s)</string>
+    <string name="error_ssl">Lỗi chứng chỉ bảo mật (SSL)</string>
+    <string name="error_timeout">Hết thời gian chờ tải trang</string>
+    <string name="retry_in">Sẽ thử lại sau %1$d giây</string>
+
+    <!-- Cài đặt -->
+    <string name="settings_title">Cài đặt dashboard</string>
+    <string name="settings_url_label">URL cục bộ / dự phòng</string>
+    <string name="settings_url_hint">https://dashboard.example.com</string>
+    <string name="settings_interval_label">Tự reload mỗi (phút, 0 = tắt)</string>
+    <string name="settings_save">Lưu</string>
+    <string name="settings_test">Kiểm tra kết nối</string>
+    <string name="settings_saved">Đã lưu</string>
+    <string name="interval_error">Nhập số phút từ 0 đến 10080 (0 = tắt)</string>
+
+    <!-- Lỗi nhập URL -->
+    <string name="url_error_empty">Chưa nhập URL</string>
+    <string name="url_error_scheme">URL phải bắt đầu bằng http:// hoặc https://</string>
+    <string name="url_error_host">URL thiếu tên miền hoặc địa chỉ máy chủ</string>
+    <string name="url_error_malformed">URL không đúng định dạng</string>
+
+    <!-- Kết quả kiểm tra kết nối -->
+    <string name="testing">Đang kiểm tra kết nối...</string>
+    <string name="test_ok">Kết nối được (HTTP %1$d)</string>
+    <string name="test_auth">Máy chủ phản hồi (HTTP %1$d), có thể cần đăng nhập</string>
+    <string name="test_http_error">Máy chủ phản hồi lỗi (HTTP %1$d)</string>
+    <string name="test_dns">Không phân giải được tên miền</string>
+    <string name="test_timeout">Hết thời gian chờ</string>
+    <string name="test_ssl">Lỗi chứng chỉ SSL</string>
+    <string name="test_refused">Máy chủ từ chối kết nối</string>
+    <string name="test_other">Không kết nối được: %1$s</string>
+
+    <!-- Tự khởi động -->
+    <string name="autostart_hint">Để app tự mở khi bật TV, cần cấp quyền \"Hiển thị trên ứng dụng khác\". Chạy lệnh này trên máy tính (TV nối adb):\nadb shell appops set %1$s SYSTEM_ALERT_WINDOW allow</string>
+    <!-- Cấu hình bằng điện thoại -->
+    <string name="remote_title">Cấu hình bằng điện thoại</string>
+    <string name="remote_scan_hint">Quét mã QR bằng điện thoại cùng mạng Wi-Fi, rồi nhập mã PIN</string>
+    <string name="remote_address">Địa chỉ: %1$s</string>
+    <string name="remote_pin">Mã PIN: %1$s</string>
+    <string name="remote_no_network">Chưa có kết nối mạng nên chưa cấu hình bằng điện thoại được</string>
+    <string name="remote_no_port">Không mở được cổng cấu hình (các cổng 8080 đến 8089 đều đang bận)</string>
+    <string name="remote_received">Đã nhận URL mới từ điện thoại, đang quay lại dashboard...</string>
+    <string name="remote_qr_description">Mã QR địa chỉ trang cấu hình</string>
+    <string name="remote_needs_bridge">Emulator cần kết nối qua IP máy tính. Chạy tools/Start-Phone-Config.cmd trên máy tính, giữ cửa sổ mở rồi đóng/mở lại Cài đặt để tạo QR.</string>
+    <string name="config_mode">Nguồn cấu hình</string>
+    <string-array name="config_modes"><item>URL cục bộ</item><item>Máy chủ API</item></string-array>
+    <string name="server_url_label">Địa chỉ gốc server cấu hình</string>
+    <string name="server_url_hint">http://IP-máy-tính:8765</string>
+    <string name="api_key_label">API key chỉ đọc (tvKey)</string>
+    <string name="department_label">Phòng ban</string>
+    <string name="load_departments">Lấy danh sách phòng ban</string>
+    <string name="tv_name_label">Tên TV (1–64 ký tự)</string>
+    <string name="sync_now">Lưu thiết lập và đồng bộ ngay</string>
+    <string name="poll_reload_hint">TV hỏi API khoảng 5 phút/lần. Chu kỳ này độc lập với tự reload dashboard phía dưới.</string>
+    <string name="remote_waiting_settings">Đang chờ cấu hình từ máy chủ</string>
+    <string name="remote_waiting_detail">Mở Cài đặt bằng Menu hoặc giữ OK 3 giây để xem lỗi server/key/phòng ban và đồng bộ lại.</string>
+</resources>

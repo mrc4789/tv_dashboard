@@ -1,0 +1,4 @@
+<resources>
+    <string name="home_assist_label">TV Dashboard – Hỗ trợ Home</string>
+    <string name="home_assist_description">Chỉ khi bạn bật hỗ trợ trong app: nhận tên cửa sổ launcher Home để chuyển về Dashboard. Không đọc nội dung màn hình hoặc gửi dữ liệu này lên mạng. Đây không phải ứng dụng hỗ trợ người khuyết tật. Có thể tắt dịch vụ bất kỳ lúc nào.</string>
+</resources>

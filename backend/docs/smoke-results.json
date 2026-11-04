@@ -1,0 +1,8 @@
+{
+  "date": "2026-10-12",
+  "unitAndIntegrationTests": 43,
+  "resourceXmlAndBindingStatic": "pass",
+  "openApiInternalReferences": "pass",
+  "limitations": "Sandbox permits loopback test sockets; host LAN CLI startup, Windows adapter detection, Android build and phone QR end-to-end pending.",
+  "adbErrorDiagnostics": "7 simulated subprocess regression tests passed; actual device failure not yet reproduced"
+}

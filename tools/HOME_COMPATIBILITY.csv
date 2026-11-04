@@ -1,0 +1,3 @@
+Model,Android_GoogleTV,Firmware,APK_version,Home_default,Home_remote,Reboot,Standby_wake,Network_recovery,PIN_logs,Restore_old_home,Tester,Notes
+Emulator_can_test,,,,CHUA_TEST,CHUA_TEST,CHUA_TEST,CHUA_TEST,CHUA_TEST,CHUA_TEST,CHUA_TEST,,
+Xiaomi_model_can_dien,,,,CHUA_TEST,CHUA_TEST,CHUA_TEST,CHUA_TEST,CHUA_TEST,CHUA_TEST,CHUA_TEST,,

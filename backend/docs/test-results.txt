@@ -1,0 +1,71 @@
+Executed 2026-10-13, editing environment. Real HTTP/TLS integration on loopback.
+
+test_admin_assets_and_csp (test_admin.AdminTests.test_admin_assets_and_csp) ... ok
+test_admin_reads_do_not_create_fake_tv (test_admin.AdminTests.test_admin_reads_do_not_create_fake_tv) ... ok
+test_anonymous_and_tv_key_cannot_read_admin_list (test_admin.AdminTests.test_anonymous_and_tv_key_cannot_read_admin_list) ... ok
+test_audit_filter_pagination (test_admin.AdminTests.test_audit_filter_pagination) ... ok
+test_cookie_save_audit_actor_and_tv_readback (test_admin.AdminTests.test_cookie_save_audit_actor_and_tv_readback) ... ok
+test_deactivated_admin_cannot_keep_session (test_admin.AdminTests.test_deactivated_admin_cannot_keep_session) ... ok
+test_expired_session_denied (test_admin.AdminTests.test_expired_session_denied) ... ok
+test_https_sets_secure_session_cookie (test_admin.AdminTests.test_https_sets_secure_session_cookie) ... ok
+test_login_password_and_session_hash_cookie_flags (test_admin.AdminTests.test_login_password_and_session_hash_cookie_flags) ... ok
+test_login_rate_limit (test_admin.AdminTests.test_login_rate_limit) ... ok
+test_login_requires_same_origin_and_csrf (test_admin.AdminTests.test_login_requires_same_origin_and_csrf) ... ok
+test_logout_revokes_session (test_admin.AdminTests.test_logout_revokes_session) ... ok
+test_mutation_rejects_csrf_and_cross_origin (test_admin.AdminTests.test_mutation_rejects_csrf_and_cross_origin) ... ok
+test_password_change_revokes_all_and_persists (test_admin.AdminTests.test_password_change_revokes_all_and_persists) ... ok
+test_provision_account_does_not_reset_existing_password (test_admin.AdminTests.test_provision_account_does_not_reset_existing_password) ... ok
+test_same_url_does_not_increase_version_or_audit (test_admin.AdminTests.test_same_url_does_not_increase_version_or_audit) ... ok
+test_session_survives_restart_until_expiry (test_admin.AdminTests.test_session_survives_restart_until_expiry) ... ok
+test_stale_version_and_concurrent_sessions (test_admin.AdminTests.test_stale_version_and_concurrent_sessions) ... ok
+test_validation_is_syntax_only_no_heartbeat (test_admin.AdminTests.test_validation_is_syntax_only_no_heartbeat) ... ok
+test_wrong_old_password_or_short_new_password (test_admin.AdminTests.test_wrong_old_password_or_short_new_password) ... ok
+test_wrong_password (test_admin.AdminTests.test_wrong_password) ... ok
+test_actual_device_rate_limit (test_api.ApiTests.test_actual_device_rate_limit) ... ok
+test_admin_update_readback_version_audit (test_api.ApiTests.test_admin_update_readback_version_audit) ... ok
+test_concurrent_updates_one_wins (test_api.ApiTests.test_concurrent_updates_one_wins) ... ok
+test_dashboard_escapes_html (test_api.ApiTests.test_dashboard_escapes_html) ... ok
+test_duplicate_parameter_400 (test_api.ApiTests.test_duplicate_parameter_400) ... ok
+test_exact_four_departments (test_api.ApiTests.test_exact_four_departments) ... ok
+test_invalid_pagination_400 (test_api.ApiTests.test_invalid_pagination_400) ... ok
+test_invalid_urls_do_not_change_version (test_api.ApiTests.test_invalid_urls_do_not_change_version) ... ok
+test_invalid_uuid_and_department_400 (test_api.ApiTests.test_invalid_uuid_and_department_400) ... ok
+test_missing_and_wrong_key_401_no_heartbeat (test_api.ApiTests.test_missing_and_wrong_key_401_no_heartbeat) ... ok
+test_missing_settings_409 (test_api.ApiTests.test_missing_settings_409) ... ok
+test_noninteger_version_400 (test_api.ApiTests.test_noninteger_version_400) ... ok
+test_offline_after_12_minutes_and_archive_after_30_days (test_api.ApiTests.test_offline_after_12_minutes_and_archive_after_30_days) ... ok
+test_restart_persists_configuration_and_device (test_api.ApiTests.test_restart_persists_configuration_and_device) ... ok
+test_revoked_key_401 (test_api.ApiTests.test_revoked_key_401) ... ok
+test_same_name_different_ids_are_separate (test_api.ApiTests.test_same_name_different_ids_are_separate) ... ok
+test_same_url_preserves_version (test_api.ApiTests.test_same_url_preserves_version) ... ok
+test_scoped_key_list_and_403 (test_api.ApiTests.test_scoped_key_list_and_403) ... ok
+test_settings_contract_and_no_store (test_api.ApiTests.test_settings_contract_and_no_store) ... ok
+test_stale_version_409 (test_api.ApiTests.test_stale_version_409) ... ok
+test_successful_poll_updates_last_seen_only_once_per_id (test_api.ApiTests.test_successful_poll_updates_last_seen_only_once_per_id) ... ok
+test_tv_key_cannot_use_admin_endpoint (test_api.ApiTests.test_tv_key_cannot_use_admin_endpoint) ... ok
+test_unknown_department_404 (test_api.ApiTests.test_unknown_department_404) ... ok
+test_empty_error_shows_exit_code (test_bridge_errors.AdbErrorTests.test_empty_error_shows_exit_code) ... ok
+test_not_debuggable_has_run_debug_instruction (test_bridge_errors.AdbErrorTests.test_not_debuggable_has_run_debug_instruction) ... ok
+test_permission_error_does_not_suggest_admin (test_bridge_errors.AdbErrorTests.test_permission_error_does_not_suggest_admin) ... ok
+test_success_preserves_output_and_arguments (test_bridge_errors.AdbErrorTests.test_success_preserves_output_and_arguments) ... ok
+test_timeout_gives_emulator_hint (test_bridge_errors.AdbErrorTests.test_timeout_gives_emulator_hint) ... ok
+test_unknown_package_from_stdout_has_install_instruction (test_bridge_errors.AdbErrorTests.test_unknown_package_from_stdout_has_install_instruction) ... ok
+test_unrecognized_error_retains_both_streams (test_bridge_errors.AdbErrorTests.test_unrecognized_error_retains_both_streams) ... ok
+test_10_can_be_a_real_lan_address (test_phase1.ConnectionTests.test_10_can_be_a_real_lan_address) ... ok
+test_generated_credentials_persist_and_are_distinct (test_phase1.ConnectionTests.test_generated_credentials_persist_and_are_distinct) ... ok
+test_manual_ip_and_auto_detection (test_phase1.ConnectionTests.test_manual_ip_and_auto_detection) ... ok
+test_reject_emulator_public_and_duplicate_ports (test_phase1.ConnectionTests.test_reject_emulator_public_and_duplicate_ports) ... ok
+test_user_space_bridge_relays_tcp (test_phase1.ConnectionTests.test_user_space_bridge_relays_tcp) ... ok
+test_all_four_settings (test_phase1.CoreRegression.test_all_four_settings) ... ok
+test_core_excludes_mock_controls (test_phase1.CoreRegression.test_core_excludes_mock_controls) ... ok
+test_failed_auth_is_rate_limited (test_phase1.CoreRegression.test_failed_auth_is_rate_limited) ... ok
+test_https_with_trusted_certificate (test_phase1.CoreRegression.test_https_with_trusted_certificate) ... ok
+test_key_cli_create_scope_and_revoke (test_phase1.CoreRegression.test_key_cli_create_scope_and_revoke) ... ok
+test_network_change_migrates_only_sample_urls (test_phase1.CoreRegression.test_network_change_migrates_only_sample_urls) ... ok
+test_production_rejects_http_dashboard (test_phase1.CoreRegression.test_production_rejects_http_dashboard) ... ok
+test_revoked_key_stays_revoked_after_restart (test_phase1.CoreRegression.test_revoked_key_stays_revoked_after_restart) ... ok
+
+----------------------------------------------------------------------
+Ran 64 tests in 6.103s
+
+OK
