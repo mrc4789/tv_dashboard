@@ -16,6 +16,8 @@ def init(db):
     CREATE TABLE IF NOT EXISTS diagnostic_ack(
       device_id TEXT PRIMARY KEY, enabled INTEGER NOT NULL, policy_version INTEGER NOT NULL,
       received_at TEXT NOT NULL);""")
+    db.execute('CREATE INDEX IF NOT EXISTS diag_time ON diagnostic_logs(received_at)')
+    db.execute('CREATE INDEX IF NOT EXISTS diag_device_time ON diagnostic_logs(device_id,received_at)')
     policy_columns = {row['name'] for row in db.execute('PRAGMA table_info(diagnostic_policy)')}
     if 'version' not in policy_columns:
         db.execute('ALTER TABLE diagnostic_policy ADD COLUMN version INTEGER NOT NULL DEFAULT 1')
@@ -61,6 +63,18 @@ def handle(h):
         raise ApiError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không hỗ trợ.')
 
     data = h.body() if h.command == 'POST' or h.command == 'PUT' else {}
+    cutoff=(datetime.now(timezone.utc)-timedelta(days=7)).isoformat().replace('+00:00','Z')
+    if h.command=='GET':
+        with h.server.connect() as db:
+            rows=db.execute("""SELECT coalesce(p.enabled,0) AS enabled,coalesce(p.version,0) AS version,
+              a.enabled AS ack_enabled,a.policy_version,a.received_at AS ack_at,l.kind,l.code,l.occurred_at,l.received_at
+              FROM devices d LEFT JOIN diagnostic_policy p USING(device_id) LEFT JOIN diagnostic_ack a USING(device_id)
+              LEFT JOIN diagnostic_logs l ON l.device_id=d.device_id AND l.received_at>=?
+              WHERE d.device_id=? ORDER BY l.received_at DESC,l.rowid DESC LIMIT 100""",(cutoff,device)).fetchall()
+        if not rows:raise ApiError(404,'DEVICE_NOT_FOUND','TV chưa đăng ký.')
+        r=rows[0]
+        h.send_json(200,{'enabled':bool(r['enabled']),'policyVersion':r['version'],'tvAcknowledged':r['ack_enabled']==r['enabled'] and r['policy_version']==r['version'],'acknowledgedAt':r['ack_at'],'items':[{k:item[k] for k in ('kind','code','occurred_at','received_at')} for item in rows if item['kind']]})
+        return True
     with h.server.connect() as db:
         db.execute('BEGIN IMMEDIATE')
         tv = db.execute('SELECT * FROM devices WHERE device_id=?', (device,)).fetchone()
@@ -110,6 +124,8 @@ def handle(h):
             db.execute('DELETE FROM diagnostic_logs WHERE device_id=? AND rowid NOT IN '
                        '(SELECT rowid FROM diagnostic_logs WHERE device_id=? ORDER BY received_at DESC,rowid DESC LIMIT 250)',
                        (device, device))
+            db.execute('DELETE FROM diagnostic_logs WHERE received_at<?',(cutoff,))
+            db.execute('DELETE FROM diagnostic_logs WHERE rowid IN (SELECT rowid FROM diagnostic_logs ORDER BY received_at DESC,rowid DESC LIMIT -1 OFFSET 50000)')
             return_value = {'accepted': len(clean)}
         elif h.command == 'PUT':
             if set(data) != {'enabled'} or type(data['enabled']) is not bool:
@@ -121,12 +137,6 @@ def handle(h):
             return_value = {'ok': True}
         elif h.command == 'DELETE':
             db.execute('DELETE FROM diagnostic_logs WHERE device_id=?', (device,))
-            return_value = {}
-        elif h.command == 'GET':
-            db.execute('DELETE FROM diagnostic_logs WHERE received_at<?',
-                       ((datetime.now(timezone.utc) - timedelta(days=7)).isoformat().replace('+00:00', 'Z'),))
-            db.execute('DELETE FROM diagnostic_logs WHERE rowid NOT IN '
-                       '(SELECT rowid FROM diagnostic_logs ORDER BY received_at DESC,rowid DESC LIMIT 50000)')
             return_value = {}
         if h.command in ('GET', 'PUT', 'DELETE'):
             policy = db.execute('SELECT enabled,version FROM diagnostic_policy WHERE device_id=?', (device,)).fetchone()

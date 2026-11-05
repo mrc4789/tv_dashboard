@@ -79,7 +79,6 @@ class AdminPortal:
         if not re.fullmatch(r'[A-Za-z0-9_-]{43}',token):self.error(401,'UNAUTHENTICATED','Phiên đăng nhập hết hạn hoặc chưa đăng nhập.')
         now=int(time.time())
         with self.server.connect() as db:
-            db.execute('DELETE FROM admin_sessions WHERE expires_at<=?',(now,))
             row=db.execute('SELECT s.*,u.active FROM admin_sessions s JOIN admin_users u ON u.username=s.username WHERE token_hash=? AND expires_at>?',(hashlib.sha256(token.encode()).hexdigest(),now)).fetchone()
         if not row or not row['active']:self.error(401,'UNAUTHENTICATED','Phiên đăng nhập hết hạn hoặc chưa đăng nhập.')
         if mutation:
@@ -182,13 +181,15 @@ class AdminPortal:
             actor=self.session(method=='PUT');device=pin_match.group(1)
             with self.server.connect() as db:
                 if method=='PUT':db.execute('BEGIN IMMEDIATE')
+                if method=='GET':
+                    row=db.execute("""SELECT p.policy_json,p.updated_at,coalesce(p.version,0) AS version,a.policy_version,a.received_at
+                      FROM devices d LEFT JOIN device_pins p USING(device_id) LEFT JOIN device_pin_ack a USING(device_id)
+                      WHERE d.device_id=?""",(device,)).fetchone()
+                    if not row:self.error(404,'DEVICE_NOT_FOUND','TV chưa đăng ký với server.')
+                    applied=row['version']==row['policy_version']
+                    return self.h.send_json(200,{'mode':json.loads(row['policy_json'])['mode'] if row['policy_json'] else 'random','updatedAt':row['updated_at'],'version':row['version'],'tvApplied':applied,'appliedAt':row['received_at'] if applied else None})
                 tv=db.execute('SELECT department_id FROM devices WHERE device_id=?',(device,)).fetchone()
                 if not tv:self.error(404,'DEVICE_NOT_FOUND','TV chưa đăng ký với server.')
-                if method=='GET':
-                    row=db.execute('SELECT policy_json,updated_at,version FROM device_pins WHERE device_id=?',(device,)).fetchone()
-                    version=row['version'] if row else 0
-                    ack=db.execute('SELECT policy_version,received_at FROM device_pin_ack WHERE device_id=?',(device,)).fetchone()
-                    return self.h.send_json(200,{'mode':json.loads(row['policy_json'])['mode'] if row else 'random','updatedAt':row['updated_at'] if row else None,'version':version,'tvApplied':bool(ack and ack['policy_version']==version),'appliedAt':ack['received_at'] if ack and ack['policy_version']==version else None})
                 body=self.h.body();mode=body.get('mode')
                 if mode=='custom':
                     pin=body.get('pin')

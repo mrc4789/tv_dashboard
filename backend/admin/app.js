@@ -9,7 +9,7 @@ async function api(path, options={}){
   const headers = {...(options.body?{'Content-Type':'application/json'}:{}), ...(options.method && options.method!=='GET'?{'X-CSRF-Token':csrf}:{}), ...options.headers};
   const response = await fetch(path,{credentials:'same-origin',...options,headers});
   let result;try{result=await response.json();}catch{throw new Error('Server trả phản hồi không hợp lệ. Kiểm tra cửa sổ Start-Service.cmd.');}
-  if(!response.ok){const error=new Error(result.error?.message || 'Không thực hiện được yêu cầu.');error.status=response.status;error.code=result.error?.code;if(response.status===401 && result.error?.code==='UNAUTHENTICATED'){await showLogin('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');}throw error;}
+  if(!response.ok){const error=new Error(result.error?.message || 'Không thực hiện được yêu cầu.');error.requestId=result.error?.requestId;error.status=response.status;error.code=result.error?.code;if(response.status===401 && result.error?.code==='UNAUTHENTICATED'){await showLogin('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');}throw error;}
   return result;
 }
 function setView(id){if(id!=='app-view')stopDeviceMonitor();for(const view of ['login-view','app-view','loading-view'])$(view).hidden=view!==id;}
@@ -168,10 +168,17 @@ $('pin-form').onsubmit=async e=>{e.preventDefault();const mode=$('pin-mode').val
 async function openDiagnostics(item){
  const dialog=document.createElement('dialog');dialog.style.cssText='max-width:800px;width:90%;max-height:80vh;overflow:auto';
  const title=node('h2','Log lỗi · '+item.name),note=node('p','Chỉ thu thập sau khi TV xác nhận đã nhận chính sách. Sự kiện được gửi sớm theo lô; khi offline, hàng đợi trên TV được giữ tối đa 7 ngày. “WebView báo tải xong” không xác nhận đăng nhập hay dữ liệu nghiệp vụ của website. Thời gian xảy ra và thời gian server nhận được hiển thị riêng. Tối đa 250 log/TV, lưu 7 ngày; hiển thị 100 log mới nhất.'),status=node('p'),list=node('div'),toggle=node('button','Đang tải…'),refresh=node('button','Làm mới'),clear=node('button','Xóa log'),close=node('button','Đóng');
- let enabled=false,busy=false;
+ let enabled=false,busy=false,known=false,activeRead=null;
  const path='/api/v1/devices/'+encodeURIComponent(item.deviceId)+'/diagnostics';
- async function perform(options){if(busy)return;busy=true;toggle.disabled=refresh.disabled=clear.disabled=true;try{const result=await api(path,options);if(!dialog.isConnected)return;enabled=result.enabled;toggle.textContent=enabled?'Tắt gửi log':'Bật gửi log';status.textContent='Server: '+(enabled?'đã bật':'đã tắt')+' · TV: '+(result.tvAcknowledged?'đã xác nhận phiên bản '+result.policyVersion+' lúc '+date(result.acknowledgedAt):'chưa xác nhận chính sách server mới nhất')+(enabled?'':' · log chờ trên TV sẽ bị xóa khi TV nhận chính sách tắt');if(!options){list.replaceChildren();for(const e of result.items){const kind=e.kind==='LOADED'?'WebView báo tải xong':e.kind;list.append(node('p','Xảy ra '+date(e.occurred_at)+' · nhận '+date(e.received_at)+' · '+kind+(e.code?' · HTTP/mã '+e.code:'')));}if(!result.items.length)list.append(node('p','Chưa có log.'));}}catch(e){if(dialog.isConnected)status.textContent=e.message;}finally{busy=false;toggle.disabled=refresh.disabled=clear.disabled=false;}}
- toggle.onclick=async()=>{await perform({method:'PUT',body:JSON.stringify({enabled:!enabled})});};refresh.onclick=()=>perform();clear.onclick=async()=>{if(confirm('Xóa log lỗi của TV này?')){await perform({method:'DELETE'});await perform();}};close.onclick=()=>dialog.close();dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.append(title,note,status,toggle,refresh,clear,list,close);document.body.append(dialog);dialog.showModal();await perform();
+ async function perform(options){if(busy)return;busy=true;toggle.disabled=refresh.disabled=clear.disabled=true;const read=options?null:new AbortController();
+ activeRead=read;
+ const timer=read?setTimeout(()=>read.abort(),20000):null;
+ try{const result=await api(path,options||{signal:read.signal});if(!dialog.isConnected)return;
+ known=true;refresh.textContent='Làm mới';enabled=result.enabled;toggle.textContent=enabled?'Tắt gửi log':'Bật gửi log';status.textContent='Server: '+(enabled?'đã bật':'đã tắt')+' · TV: '+(result.tvAcknowledged?'đã xác nhận phiên bản '+result.policyVersion+' lúc '+date(result.acknowledgedAt):'chưa xác nhận chính sách server mới nhất')+(enabled?'':' · log chờ trên TV sẽ bị xóa khi TV nhận chính sách tắt');if(!options){list.replaceChildren();for(const e of result.items){const kind=e.kind==='LOADED'?'WebView báo tải xong':e.kind;list.append(node('p','Xảy ra '+date(e.occurred_at)+' · nhận '+date(e.received_at)+' · '+kind+(e.code?' · HTTP/mã '+e.code:'')));}if(!result.items.length)list.append(node('p','Chưa có log.'));}}catch(e){known=false;if(dialog.isConnected){
+ status.textContent=(read?.signal.aborted?'Chờ quá 20 giây, chưa lấy được log.':e.message)+(e.requestId?' · Mã yêu cầu: '+e.requestId:'');
+ refresh.textContent='Thử lại';toggle.textContent='Chưa xác nhận trạng thái';
+ }}finally{clearTimeout(timer);activeRead=null;busy=false;refresh.disabled=false;toggle.disabled=clear.disabled=!known;}}
+ toggle.onclick=async()=>{await perform({method:'PUT',body:JSON.stringify({enabled:!enabled})});};refresh.onclick=()=>perform();clear.onclick=async()=>{if(confirm('Xóa log lỗi của TV này?')){await perform({method:'DELETE'});await perform();}};close.onclick=()=>dialog.close();dialog.addEventListener('close',()=>{activeRead?.abort();dialog.remove();},{once:true});dialog.append(title,note,status,toggle,refresh,clear,list,close);document.body.append(dialog);dialog.showModal();await perform();
 }
 $('cloud-issue').addEventListener('click',async()=>{
  if(!selected)return;
