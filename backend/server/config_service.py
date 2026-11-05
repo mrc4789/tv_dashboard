@@ -483,25 +483,28 @@ class Handler(BaseHTTPRequestHandler):
             stamp=now.isoformat().replace('+00:00','Z')
             cutoff=(now-timedelta(days=30)).isoformat().replace('+00:00','Z')
             online_cutoff=(now-timedelta(seconds=self.server.config['offlineSeconds'])).isoformat().replace('+00:00','Z')
-            conditions=['d.archived_at IS '+('NOT NULL' if archived=='true' else 'NULL')]
-            args=[]
+            conditions=['(d.archived_at IS NOT NULL OR d.last_seen_at<?)' if archived=='true' else '(d.archived_at IS NULL AND d.last_seen_at>=?)']
+            args=[cutoff]
             if dep:conditions.append('d.department_id=?');args.append(dep)
             if search:
-                # Literal substring: % and _ from a TV name are not SQL wildcard patterns.
                 conditions.append('(instr(lower(d.name),lower(?))>0 OR instr(lower(d.device_id),lower(?))>0)');args.extend([search,search])
-            query=' FROM devices d JOIN departments p ON p.id=d.department_id WHERE '+' AND '.join(conditions)
+            where=' AND '.join(conditions)
+            filt={'online':'WHERE last_seen_at>=?', 'offline':'WHERE last_seen_at<?'}.get(status,'')
+            sql=f"""SELECT * FROM (WITH base AS (SELECT d.* FROM devices d WHERE {where}),
+              counts AS (SELECT count(*) AS n,count(CASE WHEN last_seen_at>=? THEN 1 END) AS n_on FROM base),
+              page_rows AS (SELECT * FROM base {filt} ORDER BY last_seen_at DESC,device_id LIMIT ? OFFSET ?)
+              SELECT counts.*,d.*,p.name AS department_name,l.state,l.observed_at,l.url_hash,s.dashboard_url
+              FROM counts LEFT JOIN page_rows d ON 1=1 LEFT JOIN departments p ON p.id=d.department_id
+              LEFT JOIN device_load_status l ON l.device_id=d.device_id LEFT JOIN settings s ON s.department_id=d.department_id)
+              ORDER BY last_seen_at DESC,device_id"""
             with self.server.connect() as c:
-                c.execute('BEGIN IMMEDIATE')
-                c.execute('UPDATE devices SET archived_at=? WHERE last_seen_at<? AND archived_at IS NULL',(stamp,cutoff))
-                summary=c.execute('SELECT COUNT(*) AS total,SUM(CASE WHEN d.last_seen_at>=? THEN 1 ELSE 0 END) AS online'+query,[online_cutoff,*args]).fetchone()
-                filtered=query
-                if status:
-                    filtered+=' AND d.last_seen_at'+('>=?' if status=='online' else '<?');args.append(online_cutoff)
-                total=c.execute('SELECT COUNT(*)'+filtered,args).fetchone()[0]
-                rows=c.execute('SELECT d.*,p.name AS department_name'+filtered+' ORDER BY d.last_seen_at DESC,d.device_id LIMIT ? OFFSET ?',[*args,size,(page-1)*size]).fetchall()
-                loads={r['device_id']:{'state':r['state'],'observed_at':r['observed_at']} for r in c.execute('SELECT l.*,s.dashboard_url AS current_url FROM device_load_status l JOIN devices d ON d.device_id=l.device_id JOIN settings s ON s.department_id=d.department_id') if r['device_id'] in {d['device_id'] for d in rows} and r['url_hash']==hashlib.sha256(r['current_url'].encode()).hexdigest()}
+                result=c.execute(sql,[*args,online_cutoff,*([online_cutoff] if status else []),size,(page-1)*size]).fetchall()
+            summary={'total':result[0]['n'],'online':result[0]['n_on']}
+            total={'online':summary['online'],'offline':summary['total']-summary['online']}.get(status,summary['total'])
+            rows=[r for r in result if r['device_id'] is not None]
+            loads={r['device_id']:{'state':r['state'],'observed_at':r['observed_at']} for r in rows if r['state'] and r['dashboard_url'] and r['url_hash']==hashlib.sha256(r['dashboard_url'].encode()).hexdigest()}
             items=[{'hasCloudDeviceKey':r['last_key_id']=='cloud-tv-'+r['device_id'],'dashboardLoad':loads.get(r['device_id']), 'deviceId':r['device_id'],'name':r['name'],'department':{'id':r['department_id'],'name':r['department_name']},
-                'appVersion':r['app_version'],'firstSeenAt':r['first_seen_at'],'lastSeenAt':r['last_seen_at'],'archivedAt':r['archived_at'],
+                'appVersion':r['app_version'],'firstSeenAt':r['first_seen_at'],'lastSeenAt':r['last_seen_at'],'archivedAt':r['archived_at'] or ((datetime.fromisoformat(r['last_seen_at'].replace('Z','+00:00'))+timedelta(days=30)).isoformat().replace('+00:00','Z') if archived=='true' else None),
                 'status':'online' if r['last_seen_at']>=online_cutoff else 'offline'} for r in rows]
             online=summary['online'] or 0
             return self.send_json(200,{'items':items,'page':page,'pageSize':size,'total':total,'serverTime':stamp,
