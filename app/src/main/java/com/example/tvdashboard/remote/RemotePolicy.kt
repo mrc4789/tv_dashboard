@@ -25,7 +25,8 @@ data class RemoteSettings(
     val phonePinPolicy: String? = null,
     val phonePinPolicyVersion: Long = 0,
     val diagnosticsEnabled: Boolean = false,
-    val diagnosticsPolicyVersion: Long = 0
+    val diagnosticsPolicyVersion: Long = 0,
+    val databaseEpoch: String = ""
 )
 
 object RemotePolicy {

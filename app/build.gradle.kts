@@ -18,8 +18,9 @@ android {
         applicationId = "com.example.tvdashboard"
         minSdk = 26
         targetSdk = 34
-        versionCode = 16
-        versionName = "0.5.8-home-compat"
+        versionCode = 17
+        versionName = "0.5.9-cloud-pair"
+        buildConfigField("String", "CLOUD_API_URL", "\"https://tv-dashboard-bwmp.onrender.com\"")
 
         buildConfigField("boolean", "ALLOW_CLEARTEXT_HTTP", "true")
         buildConfigField("boolean", "HOME_ASSIST_AVAILABLE", "false")

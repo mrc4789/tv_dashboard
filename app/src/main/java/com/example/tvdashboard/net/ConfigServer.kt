@@ -21,9 +21,10 @@ import org.json.JSONObject
 
 /** PIN-gated LAN setup. API credentials never appear in QR, URLs, logs or GET responses. */
 class ConfigServer(port: Int, private val pin: String, private val allowLoopback: Boolean,
-                   private val onConfigurationReceived: (PhoneConfiguration) -> String,
+                   private val onConfigurationReceived: (PhoneConfiguration) -> Pair<Boolean, String>,
                    private val setupDefaults: () -> RemoteSetup? = { null },
                    private val autoSetup: (() -> RemoteSetup)? = null,
+                   private val cloudClaim: ((String) -> RemoteSetup)? = null,
                    private val pinVerifier: ((String) -> Boolean)? = null) : NanoHTTPD("0.0.0.0", port) {
     private val failedAttempts = AtomicInteger(0)
     private val pairingLock = Any()
@@ -35,7 +36,7 @@ class ConfigServer(port: Int, private val pin: String, private val allowLoopback
                     JSONObject().put("status", "ok").put("appVersion", BuildConfig.VERSION_NAME)
                         .put("buildType", BuildConfig.BUILD_TYPE).put("allowHttpApi", BuildConfig.ALLOW_CLEARTEXT_HTTP).toString(), "application/json")
                 session.method == Method.GET && session.uri == "/" -> response(Response.Status.OK, formPage(), "text/html")
-                session.method == Method.POST && session.uri in listOf("/save", "/departments", "/pair", "/pairing", "/unlock") -> handlePost(session)
+                session.method == Method.POST && session.uri in listOf("/save", "/departments", "/pair", "/pairing", "/unlock", "/cloud") -> handlePost(session)
                 else -> response(Response.Status.NOT_FOUND, "Not found", "text/plain")
             }
         } catch (_: Exception) {
@@ -45,7 +46,7 @@ class ConfigServer(port: Int, private val pin: String, private val allowLoopback
     }
     @Synchronized
     private fun handlePost(session: IHTTPSession): Response {
-        val asJson = session.uri in listOf("/departments", "/pairing", "/unlock")
+        val asJson = session.uri in listOf("/departments", "/pairing", "/unlock", "/cloud")
         fun error(status: Response.Status, message: String): Response = response(status,
             if (asJson) JSONObject().put("error", message).toString() else resultPage(false, message),
             if (asJson) "application/json" else "text/html")
@@ -60,9 +61,17 @@ class ConfigServer(port: Int, private val pin: String, private val allowLoopback
             val remaining = (5 - failedAttempts.incrementAndGet()).coerceAtLeast(0)
             return error(Response.Status.UNAUTHORIZED, "Sai PIN. Còn $remaining lần thử.")
         }
+        if (session.uri == "/cloud") {
+            val setup = try { requireNotNull(cloudClaim).invoke(fields["code"].orEmpty()) }
+                catch (e: Exception) { return error(Response.Status.BAD_REQUEST, e.message ?: "Không ghép được cloud.") }
+            val (ok, msg) = onConfigurationReceived(PhoneConfiguration.Remote(setup, null))
+            if (!ok) return error(Response.Status.BAD_REQUEST, msg)
+            return response(Response.Status.OK, JSONObject().put("message", msg).toString(), "application/json")
+        }
         // Local setup authenticates without discovering or contacting an API server.
         if (session.uri == "/unlock") {
-            return response(Response.Status.OK, JSONObject().put("unlocked", true).toString(), "application/json")
+            return response(Response.Status.OK, JSONObject().put("unlocked", true).put("hasCloud",
+                setupDefaults()?.let { it.serverUrl == BuildConfig.CLOUD_API_URL && PairingDefaultsPolicy.canPair(it, false) } == true).toString(), "application/json")
         }
         // Resolve credentials only after a correct PIN; never return them to the phone.
         var defaults = setupDefaults()
@@ -128,8 +137,8 @@ class ConfigServer(port: Int, private val pin: String, private val allowLoopback
         }
         val value = try { PhoneConfigurationParser.parse(fields, BuildConfig.ALLOW_CLEARTEXT_HTTP) }
         catch (e: IllegalArgumentException) { return error(Response.Status.BAD_REQUEST, e.message ?: "Thiết lập không hợp lệ.") }
-        val message = onConfigurationReceived(value)
-        return response(Response.Status.OK, resultPage(true, message), "text/html")
+        val (ok, message) = onConfigurationReceived(value)
+        return response(if (ok) Response.Status.OK else Response.Status.BAD_REQUEST, resultPage(ok, message), "text/html")
     }
     private fun response(status: Response.Status, body: String, type: String): Response =
         NanoHTTPD.newFixedLengthResponse(status, "$type; charset=utf-8", body).also {
@@ -144,7 +153,7 @@ class ConfigServer(port: Int, private val pin: String, private val allowLoopback
     private fun formPage(): String = page("""
 <h1>Kết nối cấu hình TV</h1>
 <p>Giữ màn Cài đặt trên TV mở và kết nối điện thoại cùng mạng Wi-Fi. Chọn nguồn cấu hình rồi nhập PIN.</p>
-<label for="mode">Nguồn cấu hình</label><select id="mode" name="mode" form="form"><option value="remote" selected>Máy chủ API / phòng ban</option><option value="local">URL cục bộ / nhập trực tiếp</option></select>
+<label for="mode">Nguồn cấu hình</label><select id="mode" name="mode" form="form"><option value="remote" selected>Máy chủ LAN / API đã lưu</option><option value="cloud">Render / mã ghép từ admin</option><option value="local">URL cục bộ / nhập trực tiếp</option></select>
 <p id="mode-help">Chạy service trên máy tính cùng mạng. TV tự tìm API và TV key sau khi xác thực PIN.</p>
 <section id="unlock-panel">
 <label for="pin">PIN trên TV hoặc PIN do admin cấp</label><input id="pin" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" required autocomplete="off">
@@ -152,6 +161,7 @@ class ConfigServer(port: Int, private val pin: String, private val allowLoopback
 <details id="remote-options"><summary>Tùy chọn phòng ban</summary><label><input id="edit-only" type="checkbox" style="width:auto"> Chọn phòng ban/tên TV trước khi kết nối</label></details>
 </section>
 <p id="status" role="status" aria-live="polite"></p>
+<section id="cloud-panel" hidden><button type="button" id="use-cloud" hidden>Dùng phòng ban Render đã lưu</button><label for="cloud-code">Mã ghép Render (12 ký tự từ admin)</label><input id="cloud-code" maxlength="12" autocomplete="off" autocapitalize="characters"><button type="button" id="cloud-submit">Ghép TV với Render</button></section>
 <section id="saved-summary" hidden><h2>API đã lưu trên TV</h2><p id="saved-server" style="overflow-wrap:anywhere"></p><p>TV key đã lưu trên thiết bị. Không cần nhập lại; khóa không được gửi về trình duyệt.</p></section>
 <form method="post" action="/save" id="form" hidden>
 <input type="hidden" id="save-pin" name="pin">
@@ -175,10 +185,11 @@ const el=id=>document.getElementById(id);
 let savedConnection=false,requestNumber=0,canQuickPair=false;
 function setStatus(message){el('status').textContent=message;}
 function toggle(){
- const remote=el('mode').value==='remote';el('local').hidden=remote;el('remote').hidden=!remote;
+ const remote=el('mode').value==='remote',cloud=el('mode').value==='cloud';
+ el('cloud-panel').hidden=!cloud||!el('save-pin').value;el('form').hidden=cloud||!el('save-pin').value;el('local').hidden=remote;el('remote').hidden=!remote;
  el('remote-options').hidden=!remote;el('saved-summary').hidden=!remote||!savedConnection;
  el('quick-pair').hidden=!remote||!canQuickPair;
- el('mode-help').textContent=remote?'Chạy service trên máy tính cùng mạng. TV tự tìm API và TV key sau khi xác thực PIN.':'Nhập URL trực tiếp để TV mở. Không cần service, API key hoặc phòng ban; TV vẫn cần truy cập được URL đó.';
+ el('mode-help').textContent=cloud?'Lấy mã tại trang admin Render. Không cần chạy service LAN.':remote?'Chạy service trên máy tính cùng mạng. TV tự tìm API và TV key sau khi xác thực PIN.':'Nhập URL trực tiếp để TV mở. Không cần service, API key hoặc phòng ban; TV vẫn cần truy cập được URL đó.';
  el('save').textContent=remote?'Lưu thiết lập và đồng bộ API':'Lưu URL và mở trên TV';
  if(!remote)el('advanced').open=true;
  el('url').disabled=remote;el('url').required=!remote;
@@ -212,8 +223,10 @@ el('unlock').addEventListener('click',async()=>{
  const local=el('mode').value==='local';
  setStatus(local?'Đang xác thực PIN trên TV...':'Đang tự lấy địa chỉ API và TV key từ service (khoảng vài giây)...');
  try{
+  const unlocked=await postJSON('/unlock',{pin});el('use-cloud').hidden=!unlocked.hasCloud;
+  el('save-pin').value=pin;el('unlock-panel').hidden=true;toggle();
+  if(el('mode').value==='cloud'){setStatus('PIN hợp lệ. Nhập mã ghép Render.');el('cloud-code').focus();return;}
   if(local){
-   await postJSON('/unlock',{pin});
    el('save-pin').value=pin;el('form').hidden=false;el('unlock-panel').hidden=true;
    toggle();el('url').focus();setStatus('PIN hợp lệ. Nhập URL dashboard rồi bấm Lưu URL và mở trên TV.');return;
   }
@@ -227,11 +240,19 @@ el('unlock').addEventListener('click',async()=>{
   el('mode').disabled=false;
   if(info.canPair&&!el('edit-only').checked&&el('department').value===info.department){setStatus('Đang đồng bộ dashboard từ API...');if(typeof el('form').requestSubmit==='function')el('form').requestSubmit(el('quick-pair'));else{el('form').action='/pair';el('form').submit();}}
   else if(el('edit-only').checked){el('advanced').open=true;}
- }catch(error){setStatus(error.message);}finally{el('unlock').disabled=false;el('mode').disabled=false;}
+ }catch(error){setStatus(error.message+(el('save-pin').value?' Bạn có thể nhập API thủ công hoặc chọn Render.':''));}finally{el('unlock').disabled=false;el('mode').disabled=false;}
+});
+el('use-cloud').addEventListener('click',()=>{
+ const form=el('form');el('mode').disabled=true;form.action='/pair';form.submit();
+});
+el('cloud-submit').addEventListener('click',async()=>{
+ const button=el('cloud-submit');button.disabled=true;el('mode').disabled=true;
+ try {const result=await postJSON('/cloud',{pin:el('save-pin').value,code:el('cloud-code').value.trim()});el('cloud-code').value='';setStatus(result.message);}
+ catch(error){setStatus(error.message);}finally{button.disabled=false;el('mode').disabled=false;}
 });
 el('mode').addEventListener('change',()=>{
  requestNumber++;toggle();
- if(el('mode').value==='remote'&&!savedConnection){el('unlock-panel').hidden=false;setStatus('Nhập PIN và bấm Kết nối để tự tìm API, hoặc nhập API/key thủ công bên dưới.');}
+ if(el('mode').value==='remote'&&!savedConnection&&!el('save-pin').value){el('unlock-panel').hidden=false;setStatus('Nhập PIN và bấm Kết nối để tự tìm API, hoặc nhập API/key thủ công bên dưới.');}
 });
 toggle();
 el('change-api').addEventListener('click',()=>{savedConnection=false;el('server').value=el('saved-server').textContent;el('key').value='';invalidate();toggle();el('server').focus();setStatus('Khi đổi API phải nhập key tương ứng. Khóa cũ không được tự gửi sang server khác.');});

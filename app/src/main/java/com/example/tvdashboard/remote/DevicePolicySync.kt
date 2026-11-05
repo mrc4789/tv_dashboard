@@ -11,6 +11,7 @@ import kotlinx.coroutines.sync.withLock
 object DevicePolicySync {
     private val mutex = Mutex()
     private var acknowledgedSetup: RemoteSetup? = null
+    private var acknowledgedEpoch = ""
     private var acknowledgedVersion = -1L
     private var lastSuccessSetup: RemoteSetup? = null
     private var lastSuccessAt = 0L
@@ -56,12 +57,14 @@ object DevicePolicySync {
                 require(pv >= 0 && lv >= 0)
                 val enabled = body.get("diagnosticsEnabled") as? Boolean
                     ?: throw IllegalArgumentException("Invalid policy")
-                if (!prefs.cacheDevicePolicy(expected, raw, pv)) return@withLock false
+                val epoch = body.optString("databaseEpoch")
+                if (!prefs.cacheDevicePolicy(expected, raw, pv, epoch)) return@withLock false
                 if (prefs.getRemoteSetup() != expected) return@withLock false
-                RemoteDiagnostics.configure(expected, enabled, lv)
-                if (acknowledgedSetup != expected || acknowledgedVersion != pv) {
+                RemoteDiagnostics.configure(expected, enabled, lv, epoch)
+                if (acknowledgedSetup != expected || acknowledgedVersion != pv || acknowledgedEpoch != epoch) {
                     if (RemoteSettingsClient.acknowledgePhonePinPolicy(expected, pv)) {
                         acknowledgedSetup = expected
+                        acknowledgedEpoch = epoch
                         acknowledgedVersion = pv
                     }
                 }

@@ -29,6 +29,7 @@ function renderDepartments(){
   $('department-count').textContent=departments.length;$('configured-count').textContent=departments.filter(d=>d.dashboardUrl).length;
 }
 function choose(dep){
+  $('cloud-code').textContent='';
   selected=dep;renderDepartments();$('department-name').textContent=dep.name;$('department-description').textContent=dep.description;$('version-badge').textContent='v'+dep.version;$('dashboard-url').value=dep.dashboardUrl||'';
   $('updated-info').textContent=`${date(dep.updatedAt)} · ${dep.updatedBy || 'Chưa có'}`;
   const link=validDashboardLink(dep.dashboardUrl);if(link){$('open-dashboard').href=link;$('open-dashboard').hidden=false;}else{$('open-dashboard').removeAttribute('href');$('open-dashboard').hidden=true;}
@@ -61,7 +62,7 @@ function navigate(next){
  if(next==='history')loadHistory().catch(e=>message('global-message',e.message,true));
  if(next==='devices'){readDeviceFilters();loadDevices();}
 }
-async function enter(result){csrf=result.csrfToken;$('user-name').textContent=result.username;setView('app-view');$('url-hint').textContent=result.developmentHttp?'URL đầy đủ bắt đầu bằng http:// hoặc https://. HTTP chỉ dành cho bản thử nghiệm nội bộ.':'URL đầy đủ bắt đầu bằng https://.';await loadDepartments();navigate('config');}
+async function enter(result){$('cloud-code').textContent='';$('cloud-tools').hidden=!result.cloudPairing;csrf=result.csrfToken;$('user-name').textContent=result.username;setView('app-view');$('url-hint').textContent=result.developmentHttp?'URL đầy đủ bắt đầu bằng http:// hoặc https://. HTTP chỉ dành cho bản thử nghiệm nội bộ.':'URL đầy đủ bắt đầu bằng https://.';await loadDepartments();navigate('config');}
 $('login-form').addEventListener('submit',async event=>{event.preventDefault();$('login-button').disabled=true;message('login-error','');try{const result=await api('/admin/api/login',{method:'POST',body:JSON.stringify({username:$('username').value.trim(),password:$('password').value})});$('password').value='';const session=await api('/admin/api/session');await enter(session);}catch(error){message('login-error',error.message,true);}finally{$('login-button').disabled=false;}});
 $('logout-button').addEventListener('click',async()=>{try{await api('/admin/api/logout',{method:'POST',body:'{}'});await showLogin();}catch(error){message('global-message',error.message,true);}});
 $('config-form').addEventListener('submit',async event=>{
@@ -105,7 +106,16 @@ function deviceTable(items,serverTime){
   const status=node('td');status.append(node('span',item.status==='online'?'Online':'Offline','device-state '+(item.status==='online'?'state-online':'state-offline')));
   const load=item.dashboardLoad; if(load)status.append(node('div',({unknown:'Chưa xác nhận tải',loading:'Đang tải trang',loaded:'WebView đã báo tải xong',error:'Tải trang lỗi'}[load.state]||'Chưa xác nhận tải'),'muted'),node('div','Báo cáo: '+date(load.observed_at),'muted')); else status.append(node('div','Chưa có báo cáo tải','muted'));
   const seen=node('td');seen.append(node('div',date(item.lastSeenAt)),node('div',relativeSeen(item.lastSeenAt,serverTime),'muted'));if(item.archivedAt)seen.append(node('div','Lưu trữ: '+date(item.archivedAt),'muted'));
-  const pinCell=node('td'),pinButton=node('button','Đặt PIN','secondary');pinButton.type='button';pinButton.onclick=()=>openPinDialog(item);const logButton=node('button','Log lỗi','secondary');logButton.type='button';logButton.onclick=()=>openDiagnostics(item);pinCell.append(pinButton,logButton);row.append(name,dep,status,seen,node('td',item.appVersion||'—'),pinCell);body.append(row);
+  const pinCell=node('td'),pinButton=node('button','Đặt PIN','secondary');pinButton.type='button';pinButton.onclick=()=>openPinDialog(item);const logButton=node('button','Log lỗi','secondary');logButton.type='button';logButton.onclick=()=>openDiagnostics(item);pinCell.append(pinButton,logButton);
+  if(item.hasCloudDeviceKey){
+   const revoke=node('button','Thu hồi khóa TV','secondary');revoke.type='button';
+   revoke.onclick=async()=>{if(!window.confirm('Ngừng cho '+item.name+' kết nối cloud?'))return;
+     revoke.disabled=true;
+     try{await api('/admin/api/devices/'+encodeURIComponent(item.deviceId)+'/revoke-cloud',{method:'POST',body:'{}'});message('devices-message','Đã thu hồi khóa TV. Cần mã ghép mới để kết nối lại.');}
+     catch(e){message('devices-message',e.message,true);revoke.disabled=false;}};
+   pinCell.append(revoke);
+  }
+  row.append(name,dep,status,seen,node('td',item.appVersion||'—'),pinCell);body.append(row);
  }table.append(body);wrap.append(table);return wrap;
 }
 async function loadDevices(){
@@ -163,3 +173,10 @@ async function openDiagnostics(item){
  async function perform(options){if(busy)return;busy=true;toggle.disabled=refresh.disabled=clear.disabled=true;try{const result=await api(path,options);if(!dialog.isConnected)return;enabled=result.enabled;toggle.textContent=enabled?'Tắt gửi log':'Bật gửi log';status.textContent='Server: '+(enabled?'đã bật':'đã tắt')+' · TV: '+(result.tvAcknowledged?'đã xác nhận phiên bản '+result.policyVersion+' lúc '+date(result.acknowledgedAt):'chưa xác nhận chính sách server mới nhất')+(enabled?'':' · log chờ trên TV sẽ bị xóa khi TV nhận chính sách tắt');if(!options){list.replaceChildren();for(const e of result.items){const kind=e.kind==='LOADED'?'WebView báo tải xong':e.kind;list.append(node('p','Xảy ra '+date(e.occurred_at)+' · nhận '+date(e.received_at)+' · '+kind+(e.code?' · HTTP/mã '+e.code:'')));}if(!result.items.length)list.append(node('p','Chưa có log.'));}}catch(e){if(dialog.isConnected)status.textContent=e.message;}finally{busy=false;toggle.disabled=refresh.disabled=clear.disabled=false;}}
  toggle.onclick=async()=>{await perform({method:'PUT',body:JSON.stringify({enabled:!enabled})});};refresh.onclick=()=>perform();clear.onclick=async()=>{if(confirm('Xóa log lỗi của TV này?')){await perform({method:'DELETE'});await perform();}};close.onclick=()=>dialog.close();dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.append(title,note,status,toggle,refresh,clear,list,close);document.body.append(dialog);dialog.showModal();await perform();
 }
+$('cloud-issue').addEventListener('click',async()=>{
+ if(!selected)return;
+ const dep=selected.id, button=$('cloud-issue');button.disabled=true;
+ try{const v=await api('/admin/api/cloud-codes',{method:'POST',body:JSON.stringify({department:dep})});
+ if(selected?.id===dep)$('cloud-code').textContent=v.code+' · '+dep+' · dùng cho 1 TV trong 10 phút';}
+ catch(e){message('config-message',e.message,true);}finally{button.disabled=false;}
+});
