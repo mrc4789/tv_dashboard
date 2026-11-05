@@ -23,23 +23,12 @@ object RemoteSync {
         } catch (e: IllegalArgumentException) {
             return@withLock ApiResult.Failure(e.message.orEmpty())
         }
-        val departmentMove = current.deviceId.isNotEmpty() && current.apiKey.isNotEmpty() &&
-            current.serverUrl == candidate.serverUrl && current.department != candidate.department
-        if (departmentMove) {
-            when (val result = RemoteSettingsClient.settings(candidate)) {
-                is ApiResult.Failure -> return@withLock result
-                is ApiResult.Success -> {
-                    if (!prefs.saveRemoteSetupIfCurrent(current, candidate, minutes)) {
-                        return@withLock ApiResult.Failure("Thiết lập đã đổi trong lúc xác thực phòng ban; giữ nguyên cấu hình hiện tại.")
-                    }
-                    RemoteDiagnostics.onSetupChanged(candidate)
-                    return@withLock applySettings(prefs, candidate, result.value)
-                }
+        when (val result = RemoteSettingsClient.settings(candidate)) {
+            is ApiResult.Failure -> result
+            is ApiResult.Success -> {
+                applySettings(prefs, candidate, result.value, current, minutes)
             }
         }
-        prefs.saveRemoteSetup(candidate, minutes)
-        RemoteDiagnostics.onSetupChanged(prefs.getRemoteSetup())
-        syncExpected(prefs, prefs.getRemoteSetup())
     }
 
     suspend fun now(prefs: PrefsStore): ApiResult<RemoteSettings> = mutex.withLock {
@@ -67,11 +56,12 @@ object RemoteSync {
     private suspend fun applySettings(
         prefs: PrefsStore,
         expected: RemoteSetup,
-        value: RemoteSettings
+        value: RemoteSettings, previous: RemoteSetup = expected, minutes: Int? = null
     ): ApiResult<RemoteSettings> {
-        if (!prefs.cacheSettings(expected, value)) {
+        if (!prefs.cacheSettings(expected, value, previous, minutes)) {
             return ApiResult.Failure("Thiết lập đã đổi hoặc phản hồi cũ; không áp dụng cấu hình.")
         }
+        RemoteDiagnostics.onSetupChanged(expected)
         background.launch { DevicePolicySync.now(prefs) }
         Log.i("RemoteSync", "Đã áp dụng cấu hình ${expected.department}, v${value.version}")
         return ApiResult.Success(value)

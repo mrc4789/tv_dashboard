@@ -157,9 +157,30 @@
             "get": {
               "operationId": "watchSettingsEvents",
               "description": "SSE chỉ gửi tín hiệu invalidation theo phòng ban; TV phải lấy cấu hình có xác thực lại qua /api/v1/settings. Không gửi URL, PIN hoặc verifier.",
-              "security": [{"tvApiKey": []}],
-              "parameters": [{"name": "department", "in": "query", "required": true, "schema": {"type": "string", "pattern": "^[a-z0-9-]{1,32}$"}}],
-              "responses": {"200": {"description": "text/event-stream; ready và settings-changed chỉ chứa department."}, "403": {"description": "Key không có quyền với phòng ban."}}
+              "security": [
+                {
+                  "tvApiKey": []
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "department",
+                  "in": "query",
+                  "required": true,
+                  "schema": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9-]{1,32}$"
+                  }
+                }
+              ],
+              "responses": {
+                "200": {
+                  "description": "text/event-stream; ready và settings-changed chỉ chứa department."
+                },
+                "403": {
+                  "description": "Key không có quyền với phòng ban."
+                }
+              }
             }
           },
           "400": {
@@ -288,66 +309,353 @@
     "/api/v1/devices/{deviceId}/diagnostics": {
       "get": {
         "operationId": "getDeviceDiagnostics",
-        "security": [{"adminBearer": []}, {"adminSession": []}],
-        "parameters": [{"$ref": "#/components/parameters/deviceId"}],
+        "security": [
+          {
+            "adminBearer": []
+          },
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
         "responses": {
-          "200": {"description": "Chính sách server, xác nhận TV và log; chỉ admin.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DiagnosticsState"}}}},
-          "401": {"description": "Cần đăng nhập admin"},
-          "403": {"description": "Không có quyền"}
+          "200": {
+            "description": "Chính sách server, xác nhận TV và log; chỉ admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticsState"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Cần đăng nhập admin"
+          },
+          "403": {
+            "description": "Không có quyền"
+          }
         }
       },
       "put": {
         "operationId": "setDeviceDiagnostics",
-        "security": [{"adminBearer": []}, {"adminSession": []}],
-        "parameters": [{"$ref": "#/components/parameters/deviceId"}],
-        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "required": ["enabled"], "properties": {"enabled": {"type": "boolean"}}}}}},
-        "responses": {"200": {"description": "Đã cập nhật chính sách server; TV cần xác nhận qua API."}, "401": {"description": "Cần đăng nhập admin"}}
+        "security": [
+          {
+            "adminBearer": []
+          },
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "enabled"
+                ],
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đã cập nhật chính sách server; TV cần xác nhận qua API."
+          },
+          "401": {
+            "description": "Cần đăng nhập admin"
+          }
+        }
       },
       "delete": {
         "operationId": "deleteDeviceDiagnostics",
-        "security": [{"adminBearer": []}, {"adminSession": []}],
-        "parameters": [{"$ref": "#/components/parameters/deviceId"}],
-        "responses": {"200": {"description": "Đã xóa log của thiết bị."}, "401": {"description": "Cần đăng nhập admin"}}
+        "security": [
+          {
+            "adminBearer": []
+          },
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Đã xóa log của thiết bị."
+          },
+          "401": {
+            "description": "Cần đăng nhập admin"
+          }
+        }
       },
       "post": {
         "operationId": "uploadDeviceDiagnostics",
-        "security": [{"tvApiKey": []}],
-        "parameters": [{"$ref": "#/components/parameters/deviceId"}],
-        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "required": ["events"], "properties": {"events": {"type": "array", "minItems": 1, "maxItems": 20, "items": {"$ref": "#/components/schemas/DiagnosticEvent"}}}}}}},
-        "responses": {"200": {"description": "Đã nhận sự kiện; event ID được khử trùng lặp."}, "403": {"description": "Key sai thiết bị/phòng ban hoặc chính sách tắt."}}
+        "security": [
+          {
+            "tvApiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "events"
+                ],
+                "properties": {
+                  "events": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "items": {
+                      "$ref": "#/components/schemas/DiagnosticEvent"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đã nhận sự kiện; event ID được khử trùng lặp."
+          },
+          "403": {
+            "description": "Key sai thiết bị/phòng ban hoặc chính sách tắt."
+          }
+        }
       }
     },
     "/api/v1/devices/{deviceId}/diagnostics/ack": {
       "post": {
         "operationId": "ackDeviceDiagnosticsPolicy",
-        "security": [{"tvApiKey": []}],
-        "parameters": [{"$ref": "#/components/parameters/deviceId"}],
-        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "required": ["enabled", "version"], "properties": {"enabled": {"type": "boolean"}, "version": {"type": "integer", "minimum": 0}}}}}},
-        "responses": {"200": {"description": "TV xác nhận đã nhận đúng phiên bản chính sách."}, "409": {"description": "Chính sách đã đổi."}}
+        "security": [
+          {
+            "tvApiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "enabled",
+                  "version"
+                ],
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "TV xác nhận đã nhận đúng phiên bản chính sách."
+          },
+          "409": {
+            "description": "Chính sách đã đổi."
+          }
+        }
       }
     },
     "/api/v1/devices/{deviceId}/phone-pin/ack": {
       "post": {
         "operationId": "ackDevicePhonePinPolicy",
-        "security": [{"tvApiKey": []}],
-        "parameters": [{"$ref": "#/components/parameters/deviceId"}],
-        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "required": ["version"], "properties": {"version": {"type": "integer", "minimum": 0}}}}}},
-        "responses": {"200": {"description": "TV xác nhận đã nhận phiên bản PIN."}, "409": {"description": "Chính sách PIN đã đổi."}}
+        "security": [
+          {
+            "tvApiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "version"
+                ],
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "TV xác nhận đã nhận phiên bản PIN."
+          },
+          "409": {
+            "description": "Chính sách PIN đã đổi."
+          }
+        }
       }
     },
     "/admin/api/devices/{deviceId}/phone-pin": {
       "get": {
         "operationId": "getDevicePhonePinMode",
-        "security": [{"adminSession": []}],
-        "parameters": [{"$ref": "#/components/parameters/deviceId"}],
-        "responses": {"200": {"description": "Chế độ và trạng thái xác nhận; không trả PIN hoặc verifier.", "content": {"application/json": {"schema": {"type": "object", "required": ["mode", "version", "tvApplied"], "properties": {"mode": {"type": "string", "enum": ["random", "custom"]}, "version": {"type": "integer", "minimum": 0}, "tvApplied": {"type": "boolean"}, "appliedAt": {"type": "string", "format": "date-time", "nullable": true}}}}}}}
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chế độ và trạng thái xác nhận; không trả PIN hoặc verifier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "mode",
+                    "version",
+                    "tvApplied"
+                  ],
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "random",
+                        "custom"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "tvApplied": {
+                      "type": "boolean"
+                    },
+                    "appliedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       },
       "put": {
         "operationId": "setDevicePhonePinMode",
-        "security": [{"adminSession": []}],
-        "parameters": [{"$ref": "#/components/parameters/deviceId"}],
-        "requestBody": {"required": true, "content": {"application/json": {"schema": {"oneOf": [{"type": "object", "required": ["mode"], "properties": {"mode": {"type": "string", "enum": ["random"]}}}, {"type": "object", "required": ["mode", "pin"], "properties": {"mode": {"type": "string", "enum": ["custom"]}, "pin": {"type": "string", "pattern": "^[0-9]{6,8}$"}}}]}}}},
-        "responses": {"200": {"description": "Lưu chính sách server; TV cần nhận và xác nhận phiên bản mới."}, "400": {"description": "PIN hoặc mode không hợp lệ."}}
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "mode"
+                    ],
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "random"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "mode",
+                      "pin"
+                    ],
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "custom"
+                        ]
+                      },
+                      "pin": {
+                        "type": "string",
+                        "pattern": "^[0-9]{6,8}$"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lưu chính sách server; TV cần nhận và xác nhận phiên bản mới."
+          },
+          "400": {
+            "description": "PIN hoặc mode không hợp lệ."
+          }
+        }
       }
     },
     "/api/v1/departments/{id}/settings": {
@@ -1012,6 +1320,110 @@
           }
         ]
       }
+    },
+    "/admin/api/cloud-codes": {
+      "post": {
+        "summary": "Admin session + CSRF: issue one department-scoped invitation (600 seconds)",
+        "responses": {
+          "201": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "department"
+                ],
+                "properties": {
+                  "department": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/cloud/enroll": {
+      "post": {
+        "summary": "TV exchanges invitation and device-generated key over HTTPS. Optional old x-api-key for migration.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "code",
+                  "deviceId",
+                  "deviceKey"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "deviceId": {
+                    "type": "string"
+                  },
+                  "deviceKey": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/api/devices/{deviceId}/revoke-cloud": {
+      "parameters": [
+        {
+          "name": "deviceId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "summary": "Admin session + CSRF: revoke one cloud device key",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "adminSession": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -1020,7 +1432,11 @@
         "name": "deviceId",
         "in": "path",
         "required": true,
-        "schema": {"type": "string", "format": "uuid", "description": "UUID v4 của thiết bị đã đăng ký"}
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID v4 của thiết bị đã đăng ký"
+        }
       }
     },
     "securitySchemes": {
@@ -1124,31 +1540,135 @@
       },
       "PhonePinPolicy": {
         "oneOf": [
-          {"type": "object", "required": ["mode"], "properties": {"mode": {"type": "string", "enum": ["random"]}}},
-          {"type": "object", "required": ["mode", "salt", "hash", "iterations"], "properties": {"mode": {"type": "string", "enum": ["custom"]}, "salt": {"type": "string", "pattern": "^[0-9a-f]{32}$"}, "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "iterations": {"type": "integer", "enum": [100000]}}}
+          {
+            "type": "object",
+            "required": [
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "random"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "mode",
+              "salt",
+              "hash",
+              "iterations"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "custom"
+                ]
+              },
+              "salt": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}$"
+              },
+              "hash": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "iterations": {
+                "type": "integer",
+                "enum": [
+                  100000
+                ]
+              }
+            }
+          }
         ],
         "description": "Verifier salted; không chứa PIN rõ."
       },
       "DiagnosticEvent": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "kind", "code", "occurredAt"],
+        "required": [
+          "id",
+          "kind",
+          "code",
+          "occurredAt"
+        ],
         "properties": {
-          "id": {"type": "string", "format": "uuid"},
-          "kind": {"type": "string", "enum": ["NETWORK", "HTTP_SERVER", "SSL", "TIMEOUT", "RENDERER", "LOADED"]},
-          "code": {"type": "string", "pattern": "^[0-9]{0,3}$"},
-          "occurredAt": {"type": "string", "format": "date-time"}
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "NETWORK",
+              "HTTP_SERVER",
+              "SSL",
+              "TIMEOUT",
+              "RENDERER",
+              "LOADED"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9]{0,3}$"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "DiagnosticsState": {
         "type": "object",
-        "required": ["enabled", "policyVersion", "tvAcknowledged", "items"],
+        "required": [
+          "enabled",
+          "policyVersion",
+          "tvAcknowledged",
+          "items"
+        ],
         "properties": {
-          "enabled": {"type": "boolean"},
-          "policyVersion": {"type": "integer", "minimum": 0},
-          "tvAcknowledged": {"type": "boolean"},
-          "acknowledgedAt": {"type": "string", "format": "date-time", "nullable": true},
-          "items": {"type": "array", "items": {"type": "object", "properties": {"kind": {"type": "string"}, "code": {"type": "string"}, "occurred_at": {"type": "string", "format": "date-time"}, "received_at": {"type": "string", "format": "date-time"}}}}
+          "enabled": {
+            "type": "boolean"
+          },
+          "policyVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "tvAcknowledged": {
+            "type": "boolean"
+          },
+          "acknowledgedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "occurred_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "received_at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          }
         }
       },
       "Device": {

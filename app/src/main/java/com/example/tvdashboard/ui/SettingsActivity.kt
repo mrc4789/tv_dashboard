@@ -316,8 +316,9 @@ class SettingsActivity : AppCompatActivity() {
             finally { busy(false) }
         }
     }
-    private fun onRemoteConfigurationReceived(value: PhoneConfiguration): String = runBlocking {
+    private fun onRemoteConfigurationReceived(value: PhoneConfiguration): Pair<Boolean, String> = runBlocking {
         val resultMessage: String
+        var applied = true
         var returnToDashboard = true
         when (value) {
             is PhoneConfiguration.Local -> {
@@ -332,6 +333,7 @@ class SettingsActivity : AppCompatActivity() {
                         val candidateSaved = saved.enabled && saved.serverUrl == value.setup.serverUrl &&
                             saved.apiKey == value.setup.apiKey && saved.department == value.setup.department &&
                             saved.name == value.setup.name
+                        applied = false
                         returnToDashboard = candidateSaved
                         if (candidateSaved) "Đã lưu thiết lập nhưng chưa đồng bộ: ${result.message} TV giữ cache/URL dự phòng nếu có."
                         else "Chưa lưu thiết lập mới: ${result.message} Cấu hình cũ được giữ nguyên."
@@ -345,7 +347,7 @@ class SettingsActivity : AppCompatActivity() {
                 if (returnToDashboard) handler.postDelayed({ finish() }, 2000L)
             }
         }
-        resultMessage
+        applied to resultMessage
     }
     private fun testDashboard() {
         testJob?.cancel()

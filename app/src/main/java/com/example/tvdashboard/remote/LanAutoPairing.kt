@@ -113,7 +113,9 @@ object LanAutoPairing {
     }
 
     fun connect(current: RemoteSetup): RemoteSetup = try {
-        resolve(current, discover(key = current.apiKey))
+        val saved = PairingDefaultsPolicy.connection(current, BuildConfig.ALLOW_CLEARTEXT_HTTP)
+        if (saved != null && saved.serverUrl == BuildConfig.CLOUD_API_URL) saved
+        else resolve(current, discover(key = current.apiKey))
     } catch (_: java.io.IOException) {
         throw IllegalArgumentException("Chưa truy cập được mạng LAN. Kiểm tra Wi-Fi trên TV và service, rồi thử PIN lại.")
     }

@@ -63,7 +63,7 @@ object RemoteSettingsClient {
                 lastDashboardUrl = dashboard
                 // Device policy is fetched and validated independently; bad policy must not block a valid URL.
                 ApiResult.Success(RemoteSettings(Department(valid.department, name), dashboard,
-                    version, poll.toInt().coerceIn(60, 3600)))
+                    version, poll.toInt().coerceIn(60, 3600), databaseEpoch = body.optString("databaseEpoch")))
             } catch (_: Exception) { ApiResult.Failure("API trả cấu hình không hợp lệ hoặc sai phòng ban; không áp dụng URL mới.") }
         }
     }
@@ -103,7 +103,7 @@ object RemoteSettingsClient {
         var connection: HttpURLConnection? = null
         try {
             connection = (URL(url).openConnection() as HttpURLConnection).apply {
-                connectTimeout = 8000; readTimeout = 8000; requestMethod = "GET"
+                connectTimeout = 8000; readTimeout = if (url.toString().startsWith(BuildConfig.CLOUD_API_URL + "/")) 45000 else 8000; requestMethod = "GET"
                 instanceFollowRedirects = false; useCaches = false
                 setRequestProperty("x-api-key", key); setRequestProperty("Accept", "application/json")
             }

@@ -43,6 +43,7 @@ object RemoteDiagnostics {
     private val queue = ArrayDeque<Event>()
     private var appContext: Context? = null
     private var preferences: SharedPreferences? = null
+    private var epoch = ""
     private var owner = ""
     private var policyVersion = -1L
     private var activeSetup: RemoteSetup? = null
@@ -109,13 +110,14 @@ object RemoteDiagnostics {
         }
     }
 
-    suspend fun configure(setup: RemoteSetup, allowed: Boolean, version: Long) = withContext(Dispatchers.IO) {
+    suspend fun configure(setup: RemoteSetup, allowed: Boolean, version: Long, newEpoch: String = "") = withContext(Dispatchers.IO) {
         ready.await()
         val identity = identity(setup)
         val changed = synchronized(lock) {
-            if (identity == owner && version < policyVersion) return@withContext
-            val changed = identity != owner || policyVersion != version || enabled != allowed
-            if (owner.isNotEmpty() && identity != owner) queue.clear()
+            if (identity == owner && newEpoch == epoch && version < policyVersion) return@withContext
+            val changed = identity != owner || newEpoch != epoch || policyVersion != version || enabled != allowed
+            if (owner.isNotEmpty() && (identity != owner || epoch != newEpoch)) queue.clear()
+            epoch = newEpoch
             owner = identity
             policyVersion = version
             activeSetup = setup
@@ -131,7 +133,7 @@ object RemoteDiagnostics {
                 "error" -> record("LOAD_ERROR")
             }
         }
-        val ack = "$identity|$version|$allowed"
+        val ack = "$identity|$newEpoch|$version|$allowed"
         if (synchronized(lock) { acknowledgedPolicy != ack }) {
             if (acknowledgePolicy(setup, allowed, version)) synchronized(lock) { acknowledgedPolicy = ack }
         }
@@ -147,6 +149,7 @@ object RemoteDiagnostics {
             JSONArray()
         }
         synchronized(lock) {
+            epoch = prefs.getString("db_epoch", "").orEmpty()
             owner = savedOwner
             policyVersion = savedVersion
             for (index in 0 until saved.length().coerceAtMost(MAX_EVENTS)) {
@@ -183,11 +186,11 @@ object RemoteDiagnostics {
     private suspend fun persistQueue() = withContext(Dispatchers.IO) {
         persistMutex.withLock {
             val prefs = preferences ?: return@withLock
-            val snapshot = synchronized(lock) { Triple(owner, policyVersion, queue.toList()) }
+            val snapshot = synchronized(lock) { Triple(owner to epoch, policyVersion, queue.toList()) }
             try {
                 val events = JSONArray()
                 snapshot.third.forEach { events.put(it.json()) }
-                if (!prefs.edit().putString("owner", snapshot.first).putLong("policy_version", snapshot.second)
+                if (!prefs.edit().putString("owner", snapshot.first.first).putString("db_epoch",snapshot.first.second).putLong("policy_version", snapshot.second)
                         .putString("events", events.toString()).commit()) {
                     Log.w(TAG, "Could not persist diagnostics queue")
                 }

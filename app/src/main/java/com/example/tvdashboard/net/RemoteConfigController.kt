@@ -19,7 +19,7 @@ import java.security.SecureRandom
  */
 class RemoteConfigController(
     private val context: Context,
-    private val onConfigurationReceived: (PhoneConfiguration) -> String
+    private val onConfigurationReceived: (PhoneConfiguration) -> Pair<Boolean, String>
 ) {
 
     data class Info(val address: String, val pin: String)
@@ -76,13 +76,20 @@ class RemoteConfigController(
             val candidate = ConfigServer(
                 port, pin, true, onConfigurationReceived,
                 setupDefaults = { PhoneSetupDefaults.resolve(context, runBlocking { prefs.getRemoteSetup() }) },
+                cloudClaim = { code -> com.example.tvdashboard.remote.CloudEnrollment.claim(context, runBlocking { prefs.getRemoteSetup() }, code) },
                 pinVerifier = { supplied -> runBlocking { com.example.tvdashboard.remote.PhonePinPolicy.matches(prefs.phonePinPolicy(), supplied, pin) } },
                 autoSetup = {
                     runBlocking {
                         val current = prefs.getRemoteSetup()
                         LanAutoPairing.connect(PhoneSetupDefaults.resolve(context, current) ?: current).also {
                             // Save credentials before replying; enable remote mode when /pair synchronizes.
-                            if (it != current.copy(enabled = true)) prefs.savePairingConnection(it)
+                            if (it != current.copy(enabled = true)) {
+                                if (current.apiKey.isNotBlank()) {
+                                    val probe = com.example.tvdashboard.remote.RemoteSettingsClient.departments(it.serverUrl, it.apiKey)
+                                    require(probe is com.example.tvdashboard.remote.ApiResult.Success<*>) { "Không xác thực được địa chỉ API mới. Giữ kết nối cũ." }
+                                }
+                                prefs.savePairingConnection(it)
+                            }
                         }
                     }
                 }

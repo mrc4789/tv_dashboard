@@ -85,6 +85,11 @@ class ConfigService(ThreadingHTTPServer):
 
     @contextmanager
     def connect(self):
+        if self.config.get('tursoUrl'):
+            from turso_store import connect
+            with connect(self.config['tursoUrl'],self.config['tursoToken']) as db:
+                yield db
+            return
         c = sqlite3.connect(self.db_path, timeout=10)
         c.row_factory = sqlite3.Row
         c.execute('PRAGMA foreign_keys=ON')
@@ -95,7 +100,7 @@ class ConfigService(ThreadingHTTPServer):
             c.close()
 
     def initialize(self, keys):
-        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+        if not self.config.get('tursoUrl'): Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as c:
             from remote_logs import init as init_diagnostics
             init_diagnostics(c)
@@ -132,6 +137,9 @@ class ConfigService(ThreadingHTTPServer):
             if 'version' not in pin_columns:
                 c.execute('ALTER TABLE device_pins ADD COLUMN version INTEGER NOT NULL DEFAULT 1')
             c.execute('CREATE TABLE IF NOT EXISTS service_meta (name TEXT PRIMARY KEY,value TEXT NOT NULL)')
+            c.execute("INSERT OR IGNORE INTO service_meta VALUES('databaseEpoch',?)",(str(uuid.uuid4()),))
+            self.database_epoch=c.execute("SELECT value FROM service_meta WHERE name='databaseEpoch'").fetchone()[0]
+            c.execute("CREATE TABLE IF NOT EXISTS cloud_invites(code_hash TEXT PRIMARY KEY,department TEXT NOT NULL,expires INTEGER NOT NULL,used_device TEXT)")
             previous=c.execute("SELECT value FROM service_meta WHERE name='sampleBaseUrl'").fetchone()
             old_base=previous['value'] if previous else None
             new_base=self.config['dashboardBaseUrl'].rstrip('/')
@@ -303,6 +311,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def route(self):
         path,method=self.path_only,self.command
+        if path=='/api/v1/cloud/enroll' and method=='POST':
+            if not self.server.config.get('publicOrigin'):
+                raise ApiError(404,'NOT_FOUND','Ghép cloud chưa bật.')
+            if self.headers.get('Origin'):
+                raise ApiError(403,'DEVICE_ONLY','Chỉ TV được đổi mã ghép.')
+            self.server.limit('cloud-enroll:'+self.client_address[0])
+            from cloud_pairing import redeem
+            return self.send_json(200,redeem(self.server,self.body(),self.headers.get('x-api-key','')))
         from remote_logs import handle as handle_diagnostics
         if handle_diagnostics(self): return
         policy_match=re.fullmatch(r'/api/v1/devices/([0-9a-f-]{36})/policy',path)
@@ -322,7 +338,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.scope(key,tv['department_id'])
                 pin=c.execute('SELECT policy_json,version FROM device_pins WHERE device_id=?',(device,)).fetchone()
                 diagnostic=c.execute('SELECT enabled,version FROM diagnostic_policy WHERE device_id=?',(device,)).fetchone()
-            return self.send_json(200,{'deviceId':device,
+            return self.send_json(200,{'databaseEpoch':self.server.database_epoch,'deviceId':device,
                 'phonePinPolicy':json.loads(pin['policy_json']) if pin else {'mode':'random'},
                 'phonePinPolicyVersion':pin['version'] if pin else 0,
                 'diagnosticsEnabled':bool(diagnostic['enabled']) if diagnostic else False,
@@ -403,7 +419,7 @@ class Handler(BaseHTTPRequestHandler):
                 bound=owner['key_id'] if owner else (legacy['last_key_id'] if legacy else None)
                 if bound and bound!=key['key_id']:raise ApiError(403,'DEVICE_KEY_MISMATCH','Key không thuộc TV này; cần admin cấp lại key.')
                 other=c.execute('SELECT device_id FROM device_bindings WHERE key_id=?',(key['key_id'],)).fetchone()
-                if key['key_id'].startswith('lan-') and other and other['device_id']!=device:raise ApiError(403,'DEVICE_KEY_MISMATCH','Key chỉ dùng cho TV đã ghép.')
+                if key['key_id'].startswith(('lan-', 'cloud-tv-')) and other and other['device_id']!=device:raise ApiError(403,'DEVICE_KEY_MISMATCH','Key chỉ dùng cho TV đã ghép.')
                 c.execute('INSERT OR IGNORE INTO device_bindings VALUES(?,?)',(device,key['key_id']))
                 row=c.execute('SELECT * FROM settings WHERE department_id=?',(dep,)).fetchone()
                 if row is None: raise ApiError(409,'SETTINGS_NOT_CONFIGURED','Phòng ban chưa có URL.')
@@ -424,7 +440,7 @@ class Handler(BaseHTTPRequestHandler):
                 pin_version=pin_version['version'] if pin_version else 0
                 diagnostics_version=c.execute('SELECT version FROM diagnostic_policy WHERE device_id=?',(device,)).fetchone()
                 diagnostics_version=diagnostics_version['version'] if diagnostics_version else 0
-            return self.send_json(200,{'diagnosticsEnabled':diagnostics,'phonePinPolicy':pin_policy,'department':{'id':dep,'name':dept['name']},'dashboardUrl':row['dashboard_url'],
+            return self.send_json(200,{'databaseEpoch':self.server.database_epoch,'diagnosticsEnabled':diagnostics,'phonePinPolicy':pin_policy,'department':{'id':dep,'name':dept['name']},'dashboardUrl':row['dashboard_url'],
                 'version':row['version'],'pollSeconds':self.server.config['pollSeconds'],'serverTime':now,
                 'diagnosticsPolicyVersion':diagnostics_version,'phonePinPolicyVersion':pin_version})
         match=re.fullmatch(r'/api/v1/departments/([^/]+)/settings',path)
@@ -484,7 +500,7 @@ class Handler(BaseHTTPRequestHandler):
                 total=c.execute('SELECT COUNT(*)'+filtered,args).fetchone()[0]
                 rows=c.execute('SELECT d.*,p.name AS department_name'+filtered+' ORDER BY d.last_seen_at DESC,d.device_id LIMIT ? OFFSET ?',[*args,size,(page-1)*size]).fetchall()
                 loads={r['device_id']:{'state':r['state'],'observed_at':r['observed_at']} for r in c.execute('SELECT l.*,s.dashboard_url AS current_url FROM device_load_status l JOIN devices d ON d.device_id=l.device_id JOIN settings s ON s.department_id=d.department_id') if r['device_id'] in {d['device_id'] for d in rows} and r['url_hash']==hashlib.sha256(r['current_url'].encode()).hexdigest()}
-            items=[{'dashboardLoad':loads.get(r['device_id']), 'deviceId':r['device_id'],'name':r['name'],'department':{'id':r['department_id'],'name':r['department_name']},
+            items=[{'hasCloudDeviceKey':r['last_key_id']=='cloud-tv-'+r['device_id'],'dashboardLoad':loads.get(r['device_id']), 'deviceId':r['device_id'],'name':r['name'],'department':{'id':r['department_id'],'name':r['department_name']},
                 'appVersion':r['app_version'],'firstSeenAt':r['first_seen_at'],'lastSeenAt':r['last_seen_at'],'archivedAt':r['archived_at'],
                 'status':'online' if r['last_seen_at']>=online_cutoff else 'offline'} for r in rows]
             online=summary['online'] or 0

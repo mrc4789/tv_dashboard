@@ -1,0 +1,12 @@
+**
+!Dockerfile.render
+!backend/
+!backend/run_render.py
+!backend/server/
+!backend/server/*.py
+!backend/admin/
+!backend/admin/*
+!backend/dashboard/
+!backend/dashboard/*.html
+!backend/data/
+!backend/data/departments.seed.json

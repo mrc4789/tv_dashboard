@@ -129,6 +129,25 @@ class AdminPortal:
                          {'Set-Cookie':[self.cookie('tv_admin_session',token,SESSION_SECONDS),self.cookie('tv_admin_login','',0)]})
     def handle(self):
         path=self.h.path_only;method=self.h.command
+        revoke=re.fullmatch(r'/admin/api/devices/([0-9a-f-]{36})/revoke-cloud',path)
+        if revoke and method=='POST':
+            self.session(True)
+            if not self.server.config.get('publicOrigin'):self.error(404,'NOT_FOUND','Chỉ dùng trên cloud.')
+            device=revoke.group(1)
+            with self.server.connect() as db:
+                db.execute('BEGIN IMMEDIATE')
+                row=db.execute('SELECT key_id FROM device_bindings WHERE device_id=?',(device,)).fetchone()
+                if not row or row[0]!='cloud-tv-'+device:self.error(409,'NOT_DEVICE_KEY','TV này chưa dùng khóa cloud riêng.')
+                db.execute('UPDATE api_keys SET active=0 WHERE key_id=?',(row[0],))
+                db.execute('DELETE FROM cloud_invites WHERE used_device=?',(device,))
+            return self.h.send_json(200,{'revoked':True})
+        if path=='/admin/api/cloud-codes' and method=='POST':
+            self.session(True)
+            if not self.server.config.get('publicOrigin'):
+                self.error(404,'NOT_FOUND','Ghép cloud chưa bật.')
+            dep=self.h.department(self.h.body().get('department'))
+            from cloud_pairing import issue
+            return self.h.send_json(201,issue(self.server,dep['id']))
         assets={'/admin':('index.html','text/html; charset=utf-8'),'/admin/':('index.html','text/html; charset=utf-8'),'/admin/app.js':('app.js','text/javascript; charset=utf-8'),'/admin/style.css':('style.css','text/css; charset=utf-8')}
         if path in assets and method=='GET':
             name,mime=assets[path]
@@ -137,7 +156,7 @@ class AdminPortal:
             from config_service import ApiError
             try:
                 row=self.session()
-                return self.h.send_json(200,{'authenticated':True,'username':row['username'],'csrfToken':row['csrf_token'],'expiresAt':row['expires_at'],'developmentHttp':self.server.config.get('developmentHttp',False)})
+                return self.h.send_json(200,{'authenticated':True,'username':row['username'],'csrfToken':row['csrf_token'],'expiresAt':row['expires_at'],'cloudPairing':bool(self.server.config.get('publicOrigin')),'developmentHttp':self.server.config.get('developmentHttp',False)})
             except ApiError as e:
                 if e.status!=401:raise
             token=self.login_token()

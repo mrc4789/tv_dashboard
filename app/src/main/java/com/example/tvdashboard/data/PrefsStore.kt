@@ -128,12 +128,17 @@ class PrefsStore(context: Context) {
     }
     val phonePinPolicyFlow = prefsFlow.map { it[PHONE_PIN_POLICY] ?: "{\"mode\":\"random\"}" }.distinctUntilChanged()
     suspend fun phonePinPolicy(): String = prefsFlow.first()[PHONE_PIN_POLICY] ?: "{\"mode\":\"random\"}"
-    suspend fun cacheSettings(expected: RemoteSetup, value: RemoteSettings): Boolean {
+    suspend fun cacheSettings(expected: RemoteSetup, value: RemoteSettings, previous: RemoteSetup = expected, minutes: Int? = null): Boolean {
         var applied = false
         dataStore.edit { p ->
-            if (RemotePolicy.canApplyResponse(expected, setup(p))) {
+            if (expected.enabled && previous == setup(p)) {
                 val sameCache = p[CACHE_SERVER] == expected.serverUrl && p[CACHE_DEPARTMENT] == expected.department
-                if (sameCache && value.version < (p[VERSION] ?: 0L)) return@edit
+                if (sameCache && (p[CACHE_EPOCH] ?: "") == value.databaseEpoch && value.version < (p[VERSION] ?: 0L)) return@edit
+                // Commit verified credentials and URL together; never expose an empty intermediate cache.
+                p[ENABLED] = true; p[SERVER] = expected.serverUrl; p[KEY] = expected.apiKey
+                p[DEPARTMENT] = expected.department; p[NAME] = expected.name
+                if (minutes != null) p[KEY_RELOAD_MINUTES] = minutes.coerceIn(0, MAX_RELOAD_MINUTES)
+                p[CACHE_EPOCH] = value.databaseEpoch
                 p[CACHE_URL] = value.dashboardUrl; p[CACHE_SERVER] = expected.serverUrl; p[CACHE_DEPARTMENT] = expected.department
                 p[VERSION] = value.version; p[POLL] = value.pollSeconds; p[SYNC_AT] = System.currentTimeMillis()
                 p[STATUS] = "Đồng bộ thành công: ${value.department.name}, v${value.version}. Lúc " + java.time.Instant.ofEpochMilli(p[SYNC_AT]!!).toString()
@@ -143,12 +148,12 @@ class PrefsStore(context: Context) {
         return applied
     }
     // Device policy is independent of dashboard URL, department and local/remote display mode.
-    suspend fun cacheDevicePolicy(expected: RemoteSetup, raw: String, version: Long): Boolean {
+    suspend fun cacheDevicePolicy(expected: RemoteSetup, raw: String, version: Long, epoch: String = ""): Boolean {
         com.example.tvdashboard.remote.PhonePinPolicy.validate(raw)
         var applied = false
         dataStore.edit { p ->
             if (setup(p) != expected) return@edit
-            val source = expected.serverUrl + "|" + expected.deviceId
+            val source = expected.serverUrl + "|" + expected.deviceId + if (epoch.isEmpty()) "" else "|"+epoch
             if (p[PIN_POLICY_SOURCE] == source && version < (p[PIN_POLICY_VERSION] ?: 0L)) return@edit
             p[PHONE_PIN_POLICY] = raw
             p[PIN_POLICY_VERSION] = version
@@ -170,6 +175,7 @@ class PrefsStore(context: Context) {
     }
     suspend fun pollSeconds(): Int = (prefsFlow.first()[POLL] ?: RemotePolicy.DEFAULT_POLL_SECONDS).coerceIn(60, 3600)
     companion object {
+        private val CACHE_EPOCH = stringPreferencesKey("cache_database_epoch")
         private val PHONE_PIN_POLICY = stringPreferencesKey("phone_pin_policy")
         private val PIN_POLICY_VERSION = longPreferencesKey("phone_pin_policy_version")
         private val PIN_POLICY_SOURCE = stringPreferencesKey("phone_pin_policy_source")
